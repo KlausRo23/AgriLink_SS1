@@ -51,6 +51,15 @@ export async function editCrop(req, res) {
     }
 }
 
+export async function harvestCrop(req, res) {
+    try {
+        const result = await cropService.harvestCrop(req.params.id, req.body, req.file, req.user)
+        return res.status(200).json({ success: true, message: "Crop harvested and added to inventory", data: result })
+    } catch (err) {
+        return handleError(res, err)
+    }
+}
+
 export async function archiveCrop(req, res) {
     try {
         await cropService.archiveCrop(req.params.id, req.body?.reason, req.user)

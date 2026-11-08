@@ -67,11 +67,17 @@ export const processProfileImage = (buffer) =>
 export const processFarmPhoto = (buffer) =>
     processImage(buffer, { folder: "farms", width: 1200, height: 800, minSize: 300 })
 
-export const deleteProfileImage = (relativePath) => deleteImage(relativePath, "farmers")
-export const deleteFarmPhoto = (relativePath) => deleteImage(relativePath, "farms")
-
-
 export const processCropPhoto = (buffer) =>
     processImage(buffer, { folder: "crops", width: 1200, height: 800, minSize: 300 })
 
+export const processInventoryPhoto = (buffer) =>
+    processImage(buffer, { folder: "inventory", width: 800, height: 800, minSize: 200 })
+
+export const processActivityPhoto = (buffer) =>
+    processImage(buffer, { folder: "activities", width: 1200, height: 900, minSize: 200 })
+
+export const deleteProfileImage = (relativePath) => deleteImage(relativePath, "farmers")
+export const deleteFarmPhoto = (relativePath) => deleteImage(relativePath, "farms")
 export const deleteCropPhoto = (relativePath) => deleteImage(relativePath, "crops")
+export const deleteInventoryPhoto = (relativePath) => deleteImage(relativePath, "inventory")
+export const deleteActivityPhoto = (relativePath) => deleteImage(relativePath, "activities")

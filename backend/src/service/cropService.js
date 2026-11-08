@@ -2,10 +2,19 @@ import mongoose from "mongoose"
 import Crop from "../model/Crop.js"
 import Archive from "../model/Archive.js"
 import History from "../model/History.js"
+import Inventory from "../model/Inventory.js"
 import AppError from "../utils/AppError.js"
 import { validateCropInput, parseCropListQuery } from "../utils/cropValidator.js"
-import { processCropPhoto, deleteCropPhoto } from "../utils/imageProcessor.js"
+import { validateHarvestInput } from "../utils/inventoryValidator.js"
+import {
+    processCropPhoto,
+    deleteCropPhoto,
+    processInventoryPhoto,
+    deleteInventoryPhoto
+} from "../utils/imageProcessor.js"
+import { presentInventory } from "./inventoryService.js"
 import { cropPresets, CROP_STATUS } from "../constant/cropPreset.js"
+import { SOURCE_TYPES } from "../constant/inventory.js"
 
 const DAY_MS = 86_400_000
 
@@ -172,6 +181,107 @@ export async function updateCrop(id, body, file, requester) {
     const updated = crop.toObject()
     await recordHistory("edited", requester.id, crop._id, previous, updated)
     return presentCrop(updated)
+}
+
+/**
+ * Record a harvest: crop -> "harvested", and the yield goes into Inventory.
+ * Steps: validate, check status and early harvest, process photo,
+ * flip the crop atomically (blocks double harvest), create the inventory row,
+ * and roll the crop back if the inventory insert fails (no transactions needed).
+ */
+export async function harvestCrop(id, body, file, requester) {
+    const crop = await findOwnCropOrFail(id, requester)
+
+    if (crop.status !== CROP_STATUS.GROWING) {
+        throw new AppError("This crop has already been harvested", 409)
+    }
+
+    const { data, errors, isValid } = validateHarvestInput(body)
+    if (!isValid) throw new AppError("Validation failed", 400, errors)
+
+    // Harvesting before the estimated date needs an explicit confirmation from the farmer
+    const now = new Date()
+    const daysEarly = Math.ceil((new Date(crop.harvestDate).getTime() - now.getTime()) / DAY_MS)
+    if (daysEarly > 0 && !data.confirmEarly) {
+        throw new AppError(
+            `This crop is estimated to be ready in ${daysEarly} day(s). Confirm to harvest early.`,
+            409,
+            { requiresConfirmation: true, daysEarly }
+        )
+    }
+
+    // Sell-by follows the actual harvest date + shelf life (editable at harvest time)
+    const shelfLifeDays = data.shelfLifeDays ?? crop.shelfLifeDays
+    const expirationDate = addDays(now, shelfLifeDays)
+
+    // The image is verified and processed before anything is changed
+    let imagePath
+    if (file) imagePath = await processInventoryPhoto(file.buffer)
+
+    // Atomic flip: only one request can move this crop from "growing" to "harvested"
+    const previous = await Crop.findOneAndUpdate(
+        { _id: crop._id, owner: requester.id, status: CROP_STATUS.GROWING },
+        {
+            $set: {
+                status: CROP_STATUS.HARVESTED,
+                actualHarvestDate: now,
+                shelfLifeDays,
+                sellDate: expirationDate
+            }
+        },
+        { new: false } // returns the document as it was, for rollback and history
+    )
+
+    if (!previous) {
+        await deleteInventoryPhoto(imagePath)
+        throw new AppError("This crop has already been harvested", 409)
+    }
+
+    let inventory
+    try {
+        inventory = await Inventory.create({
+            name: crop.name,
+            category: "crop",
+            description: crop.description,
+            notes: data.notes ?? "",
+            quantity: data.quantity,
+            unit: data.unit,
+            dateReceived: now,
+            harvestDate: now,
+            expirationDate,
+            sourceType: SOURCE_TYPES.HARVEST,
+            owner: requester.id, // always from the token, never from req.body
+            crop: crop._id,
+            ...(imagePath && { image: imagePath })
+        })
+    } catch (err) {
+        // Roll the crop back so it isn't "harvested" with nothing in inventory
+        await Crop.updateOne(
+            { _id: crop._id, owner: requester.id },
+            {
+                $set: {
+                    status: CROP_STATUS.GROWING,
+                    actualHarvestDate: null,
+                    shelfLifeDays: previous.shelfLifeDays,
+                    sellDate: previous.sellDate
+                }
+            }
+        )
+        await deleteInventoryPhoto(imagePath)
+
+        if (err.code === 11000) {
+            throw new AppError("This crop has already been added to inventory", 409)
+        }
+        throw err
+    }
+
+    const updated = await Crop.findById(crop._id).lean()
+    await recordHistory("harvested", requester.id, crop._id, previous.toObject(), updated)
+
+    return {
+        crop: presentCrop(updated),
+        inventory: presentInventory(inventory.toObject())
+    }
 }
 
 // "Delete" moves the crop to the Archive so it can be restored.

@@ -8,6 +8,7 @@ import {
     getCropDetail,
     createCrop,
     editCrop,
+    harvestCrop,
     archiveCrop
 } from "../controller/cropController.js"
 
@@ -26,6 +27,10 @@ router.post("/add-crop",
 
 router.put("/edit-crop/:id",
     verifyAccessToken, isFarmer, checkCropOwnership, uploadCropPhoto, editCrop)
+
+// Record Harvest: fields quantity, unit (required), notes, shelfLifeDays, confirmEarly, image (optional)
+router.post("/harvest/:id",
+    verifyAccessToken, isFarmer, checkCropOwnership, uploadCropPhoto, harvestCrop)
 
 router.delete("/crop/:id",
     verifyAccessToken, isFarmer, checkCropOwnership, archiveCrop)

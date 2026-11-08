@@ -29,13 +29,12 @@ router.patch("/admin/approve-listing/:id",
     authorize("admin"),
     approveListing
 )
-/* This will be returned after discussion
+
 router.patch("/admin/return-listing/:id",
     verifyAccessToken,
     authorize("admin"),
     returnListing
 )
-*/
 
 //Farmer and User Route
 router.get("/listing/:id", 
@@ -46,6 +45,11 @@ router.get("/listing/:id",
 router.post("/submit-listing",
     verifyAccessToken,
     createListing)
+
+router.put("/edit-listing/:id", 
+    verifyAccessToken,
+    checkOwnership,
+    resubmitListing)
 
 router.put("/edit-listing/:id", 
     verifyAccessToken,
