@@ -6,6 +6,7 @@ import AppError from "../utils/AppError.js"
 import { validateInventoryInput, parseInventoryListQuery } from "../utils/inventoryValidator.js"
 import { processInventoryPhoto, deleteInventoryPhoto } from "../utils/imageProcessor.js"
 import { SOURCE_TYPES } from "../constant/inventory.js"
+import { archiveItem } from "./archiveService.js"
 
 const DAY_MS = 86_400_000
 
@@ -155,28 +156,5 @@ export async function updateInventory(id, body, file, requester) {
 // "Delete" moves the item to the Archive so it can be restored.
 // The photo file is kept on purpose: it's only removed when the archive entry is permanently deleted.
 export async function deleteInventory(id, rawReason, requester) {
-    const item = await findOwnItemOrFail(id, requester)
-
-    const reason = typeof rawReason === "string"
-        ? rawReason.replace(/[<>]/g, "").trim().slice(0, 200)
-        : ""
-
-    const snapshot = item.toObject()
-
-    const archived = await Archive.create({
-        itemType: "Inventory",
-        originalId: item._id,
-        snapshot,
-        reason: reason || "Deleted by owner",
-        owner: requester.id
-    })
-
-    try {
-        await item.deleteOne()
-    } catch (err) {
-        await Archive.deleteOne({ _id: archived._id }) // roll back so the item isn't in both places
-        throw err
-    }
-
-    await recordSupplyHistory("deleted", item, snapshot, null)
+    await archiveItem("Inventory", id, rawReason, requester)
 }

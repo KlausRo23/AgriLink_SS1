@@ -3,16 +3,27 @@ import { LISTING_STATUS, ACTIVE_LISTING_STATUSES, LISTING_UNITS } from "../const
 
 const listingSchema = new mongoose.Schema({
     // The inventory item this listing sells from. Can't be changed after creation.
-    inventory: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "Inventory", 
-        required: true, 
-        immutable: true 
+    inventory: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Inventory",
+        required: true,
+        immutable: true
     },
-    crop: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "Crop", 
-        default: null 
+
+    // The crop that produced this stock. Its Schedule entries ARE the care log buyers can see.
+    // Null for manually added inventory (nothing was grown through the app, so no care log).
+    crop: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Crop",
+        default: null,
+        immutable: true
+    },
+
+    // Farmer's choice: show the care log (watering, fertilizing, notes, photos) to buyers.
+    // Admins can always see it during review.
+    showCareLog: { 
+        type: Boolean, 
+        default: true 
     },
 
     // Snapshot of the crop name taken from inventory when the listing is created
@@ -41,7 +52,10 @@ const listingSchema = new mongoose.Schema({
     },
     description: { 
         type: String, 
-        maxLength: 300, default: "", trim: true },
+        maxLength: 300, 
+        default: "", 
+        trim: true 
+    },
 
     status: {
         type: String,
@@ -51,15 +65,34 @@ const listingSchema = new mongoose.Schema({
     },
 
     // Filled in by the admin who reviews the listing
-    reviewNote: { type: String, maxLength: 300, default: "" },
-    reviewedBy: { type: String, default: null },
-    reviewedAt: { type: Date, default: null },
+    reviewNote: { 
+        type: String, 
+        maxLength: 300, 
+        default: "" 
+    },
+    reviewedBy: { 
+        type: String, 
+        default: null 
+    },
+    reviewedAt: { 
+        type: Date, 
+        default: null 
+    },
 
     // Maintained automatically from status. Powers the "one active listing per inventory item" index.
-    isActive: { type: Boolean, default: true },
+    isActive: { 
+        type: Boolean, 
+        default: true 
+    },
 
     // SS1's user id (req.user.id). A plain string because the user lives in SS1's DB.
-    owner: { type: String, required: true, immutable: true, index: true }
+    owner: { 
+        
+        type: String, 
+        required: true, 
+        immutable: true, 
+        index: true 
+    }
 }, { timestamps: true })
 
 listingSchema.pre("save", function (next) {

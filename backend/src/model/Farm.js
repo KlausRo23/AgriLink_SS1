@@ -1,9 +1,8 @@
 import mongoose from "mongoose"
 import { REGION_IDS } from "../constant/region.js"
-import { CROP_PRESET } from "../constant/cropPreset.js"
+import { cropPresets } from "../constant/cropPreset.js"
 
-// Works if CROP_PRESET is an object ({ Rice: {...} }) or an array (["Rice", ...])
-const SPECIALTIES = Array.isArray(CROP_PRESET) ? CROP_PRESET : Object.keys(CROP_PRESET)
+const SPECIALTIES = Object.keys(cropPresets)
 
 const farmSchema = new mongoose.Schema({
     farmName: { 
@@ -41,11 +40,10 @@ const farmSchema = new mongoose.Schema({
     startedFarming: { 
 		type: Date 
 	},
-    specialty: { 
-		type: String, 
-		required: false, 
-		enum: SPECIALTIES 
-	},
+    specialty: {
+        type: [{ type: String, enum: SPECIALTIES }],
+        required: false
+    },
 
     // The Farmer document (not the SS1 user). One farm per farmer.
     // Remove "unique" if a farmer may own several farms.

@@ -54,7 +54,7 @@ const farmerSchema = new mongoose.Schema({
 	},
     bio: { 
 		type: String, 
-		required: true, 
+		required: false,
 		maxLength: 200, 
 		trim: true 
 	},

@@ -15,6 +15,7 @@ import {
 import { presentInventory } from "./inventoryService.js"
 import { cropPresets, CROP_STATUS } from "../constant/cropPreset.js"
 import { SOURCE_TYPES } from "../constant/inventory.js"
+import { archiveItem } from "./archiveService.js"
 
 const DAY_MS = 86_400_000
 
@@ -284,31 +285,6 @@ export async function harvestCrop(id, body, file, requester) {
     }
 }
 
-// "Delete" moves the crop to the Archive so it can be restored.
-// The photo file is kept on purpose: it's only removed when the archive entry is permanently deleted.
 export async function archiveCrop(id, rawReason, requester) {
-    const crop = await findOwnCropOrFail(id, requester)
-
-    const reason = typeof rawReason === "string"
-        ? rawReason.replace(/[<>]/g, "").trim().slice(0, 200)
-        : ""
-
-    const snapshot = crop.toObject()
-
-    const archived = await Archive.create({
-        itemType: "Crop",
-        originalId: crop._id,
-        snapshot,
-        reason: reason || "Deleted by owner",
-        owner: requester.id
-    })
-
-    try {
-        await crop.deleteOne()
-    } catch (err) {
-        await Archive.deleteOne({ _id: archived._id }) // roll back so the crop isn't in both places
-        throw err
-    }
-
-    await recordHistory("deleted", requester.id, crop._id, snapshot, null)
+    await archiveItem("Crop", id, rawReason, requester)
 }

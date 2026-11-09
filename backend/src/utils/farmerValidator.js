@@ -30,7 +30,7 @@ export function validateFarmerInput(body = {}, { partial = false } = {}) {
     const data = {}
     const has = (key) => Object.prototype.hasOwnProperty.call(body, key)
 
-    const required = ["lastName", "firstName", "middleName", "age", "region", "bio"]
+    const required = ["lastName", "firstName", "middleName", "age", "region"]
     if (!partial) {
         for (const key of required) {
             if (!has(key) || body[key] === "" || body[key] === null) errors[key] = `${key} is required`
@@ -64,7 +64,7 @@ export function validateFarmerInput(body = {}, { partial = false } = {}) {
 
     if (has("bio") && !errors.bio) {
         const v = clean(body.bio)
-        if (v.length === 0 || v.length > 200) errors.bio = "bio must be 1-200 characters"
+        if (v.length > 200) errors.bio = "bio must be at most 200 characters"
         else data.bio = v
     }
 

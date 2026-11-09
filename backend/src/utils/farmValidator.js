@@ -1,12 +1,11 @@
 import { REGION_IDS } from "../constant/region.js"
-import { CROP_PRESET } from "../constant/cropPreset.js"
+import { cropPresets } from "../constant/cropPreset.js"
 import { sanitizeInput } from "./sanitizeInput.js"
 
 const DELIVERY_MODES = ["deliver", "3rd party service"]
 const VERIFIED_STATES = ["False", "Pending", "Verified"]
 
-// Works if CROP_PRESET is an object ({ Rice: {...} }) or an array (["Rice", ...])
-const SPECIALTIES = Array.isArray(CROP_PRESET) ? CROP_PRESET : Object.keys(CROP_PRESET)
+const SPECIALTIES = Object.keys(cropPresets)
 
 const FARM_NAME_REGEX = /^[\p{L}\p{N}][\p{L}\p{N}\s.,'&-]*$/u // letters, digits, spaces, . , ' & -
 const MIN_DATE = new Date("1900-01-01")
@@ -81,16 +80,36 @@ export function validateFarmInput(body = {}, { partial = false } = {}) {
     }
 
     if (has("startedFarming") && body.startedFarming !== "") {
-        const date = typeof body.startedFarming === "string" ? new Date(body.startedFarming) : null
-        if (!date || Number.isNaN(date.getTime()) || date > new Date() || date < MIN_DATE) {
-            errors.startedFarming = "startedFarming must be a valid past date (YYYY-MM-DD)"
-        } else data.startedFarming = date
+        const value = typeof body.startedFarming === "string" ? body.startedFarming.trim() : ""
+        if (/^\d{4}$/.test(value)) {
+            const year = Number(value)
+            if (year < 1900 || year > new Date().getFullYear()) {
+                errors.startedFarming = "startedFarming must be a year from 1900 through the current year"
+            } else {
+                data.startedFarming = new Date(Date.UTC(year, 0, 1))
+            }
+        } else {
+            const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : null
+            if (
+                !date ||
+                Number.isNaN(date.getTime()) ||
+                date.toISOString().slice(0, 10) !== value ||
+                date > new Date() ||
+                date < MIN_DATE
+            ) {
+                errors.startedFarming = "startedFarming must be a year or valid past date (YYYY or YYYY-MM-DD)"
+            } else data.startedFarming = date
+        }
     }
 
     if (has("specialty") && body.specialty !== "") {
-        const v = clean(body.specialty)
-        if (!SPECIALTIES.includes(v)) errors.specialty = "invalid specialty"
-        else data.specialty = v
+        const list = toArray(body.specialty)
+        const specialties = list ? [...new Set(list.map((item) => clean(item)).filter(Boolean))] : null
+        if (!specialties) {
+            errors.specialty = "specialty must be a list of supported crops"
+        } else if (specialties.some((item) => !SPECIALTIES.includes(item))) {
+            errors.specialty = "specialty contains an invalid crop"
+        } else data.specialty = specialties
     }
 
     if (has("description") && !errors.description) {
