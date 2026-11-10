@@ -1,17 +1,45 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowLeft, ArrowUpRight, MapPin, Minus, Plus, ShoppingBag, Sprout } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import ListingCareHistory from "../component/listing/ListingCareHistory"
-import { createOrderRequest } from "../data/inbox"
-import { loadListings } from "../data/listings"
+import { createInboxOrderRequest, getMarketplaceListing, getMyListing } from "../api/api"
+import { normalizeListing } from "../data/listings"
 import "../styles/listings.css"
 
 function ListingDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const listing = loadListings().find((item) => item.id === id)
+  const [listing, setListing] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [notice, setNotice] = useState("")
+  const [orderSubmitting, setOrderSubmitting] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    async function loadListing() {
+      setLoading(true)
+      setLoadError("")
+      try {
+        let response
+        try {
+          response = await getMyListing(id)
+        } catch (error) {
+          if (![403, 404].includes(error.response?.status)) throw error
+          response = await getMarketplaceListing(id)
+        }
+        const { data } = response
+        if (active) setListing(normalizeListing(data.data))
+      } catch (error) {
+        if (active) setLoadError(error.response?.data?.message || "Could not load this listing.")
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    void loadListing()
+    return () => { active = false }
+  }, [id])
 
   if (!listing) {
     return (
@@ -23,8 +51,8 @@ function ListingDetail() {
         <div className="listing-detail-content">
           <Link className="listing-back-link" to="/listings"><ArrowLeft size={16} aria-hidden="true" /> Back to listings</Link>
           <div className="listings-empty">
-            <h1>Listing unavailable</h1>
-            <p>This listing may have been removed or is not available in the marketplace.</p>
+            <h1>{loading ? "Loading listing..." : "Listing unavailable"}</h1>
+            <p role={loadError ? "alert" : undefined}>{loadError || (loading ? "Fetching listing details." : "This listing may have been removed or is not available to your account.")}</p>
           </div>
         </div>
       </main>
@@ -33,15 +61,20 @@ function ListingDetail() {
 
   const maxQuantity = Math.max(1, Math.floor(listing.stock))
   const isApproved = listing.status === "approved"
+  const canOrder = isApproved && !listing.isOwner
   const price = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })
 
-  function placeOrder() {
-    const { thread, saved } = createOrderRequest({ listing, quantity })
-    if (!saved) {
-      setNotice("The order request could not be saved in this browser. Check storage permissions and try again.")
-      return
+  async function placeOrder() {
+    setOrderSubmitting(true)
+    setNotice("")
+    try {
+      const { data } = await createInboxOrderRequest({ listingId: listing.id, quantity })
+      navigate("/inbox", { state: { threadId: data.data.id } })
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not submit this order request.")
+    } finally {
+      setOrderSubmitting(false)
     }
-    navigate("/inbox", { state: { threadId: thread.id, saved: true } })
   }
 
   return (
@@ -95,7 +128,7 @@ function ListingDetail() {
               <span className="listing-seller-verified">Verified farmer</span>
             </div>
 
-            {isApproved ? (
+            {canOrder ? (
               <>
                 <div className="listing-detail-quantity">
                   <div>
@@ -109,8 +142,8 @@ function ListingDetail() {
                 </div>
 
                 <div className="listing-detail-subtotal"><span>Subtotal</span><strong>{price.format(quantity * listing.price)}</strong></div>
-                <button type="button" className="listing-place-order" onClick={placeOrder}>
-                  <ShoppingBag size={17} aria-hidden="true" /> Place an order
+                <button type="button" className="listing-place-order" onClick={placeOrder} disabled={orderSubmitting}>
+                  <ShoppingBag size={17} aria-hidden="true" /> {orderSubmitting ? "Submitting..." : "Place an order"}
                 </button>
                 <button type="button" className="listing-contact-farmer" onClick={() => setNotice(`Contact details for ${listing.seller} are not available in this preview.`)}>
                   Contact farmer <ArrowUpRight size={15} aria-hidden="true" />
@@ -119,12 +152,13 @@ function ListingDetail() {
               </>
             ) : (
               <div className="listing-not-approved">
-                <strong>Not available in the marketplace yet</strong>
-                <span>This listing is {listing.status} and cannot be ordered.</span>
+                <strong>{isApproved ? "Your approved listing is live" : "Not available in the marketplace yet"}</strong>
+                <span>{isApproved ? "Buyers can now find this product in the marketplace." : `This listing is ${listing.status} and cannot be ordered.`}</span>
+                {listing.reviewNote && <span>Review note: {listing.reviewNote}</span>}
               </div>
             )}
 
-            <div className="listing-location"><MapPin size={16} aria-hidden="true" /><span>{listing.region}</span></div>
+            {listing.region && <div className="listing-location"><MapPin size={16} aria-hidden="true" /><span>{listing.region}</span></div>}
           </div>
         </section>
 
@@ -136,7 +170,9 @@ function ListingDetail() {
           </div>
           <div className="listing-harvest-card">
             <span>Harvested</span>
-            <strong>{new Intl.DateTimeFormat("en-PH", { month: "long", day: "numeric", year: "numeric" }).format(new Date(`${listing.harvestDate}T12:00:00`))}</strong>
+            <strong>{listing.harvestDate
+              ? new Intl.DateTimeFormat("en-PH", { month: "long", day: "numeric", year: "numeric" }).format(new Date(`${listing.harvestDate}T12:00:00`))
+              : "Date not provided"}</strong>
             <span>Grown in {listing.region}</span>
           </div>
         </section>

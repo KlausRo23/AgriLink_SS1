@@ -16,7 +16,7 @@ const VERIFICATION_STATES = ["False", "Pending", "Verified"]
 
 // What a buyer is allowed to see
 const PUBLIC_FIELDS =
-    "farmName farmPhoto location deliveryMode deliverableRegions startedFarming specialty description owner"
+    "farmName farmPhoto location deliveryMode deliverableRegions startedFarming specialty naturallyGrown description owner"
 
 // requester = req.user = { id, role }, built from the verified token (never from req.body)
 const isAdmin = (requester) => ADMIN_ROLES.includes(requester.role)
@@ -51,7 +51,11 @@ async function findFarmOrFail(id) {
 function withPhotoUrl(doc) {
     const { farmPhoto, ...rest } = doc
     const base = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "")
-    return { ...rest, farmPhotoUrl: farmPhoto ? `${base}${farmPhoto}` : null }
+    return {
+        ...rest,
+        naturallyGrown: rest.naturallyGrown ?? true,
+        farmPhotoUrl: farmPhoto ? `${base}${farmPhoto}` : null
+    }
 }
 
 // ---------- Farmer / user (owner) ----------

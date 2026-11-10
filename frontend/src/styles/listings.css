@@ -371,6 +371,13 @@
   font-size: 0.68rem;
 }
 
+.listing-card-review-note {
+  margin: 0 0 10px;
+  color: #946a20;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .listing-card-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

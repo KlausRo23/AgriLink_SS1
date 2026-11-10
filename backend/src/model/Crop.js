@@ -29,6 +29,16 @@ const cropSchema = new mongoose.Schema({
         default: "", 
         trim: true
     },
+    field: {
+        type: String,
+        maxlength: 80,
+        default: "",
+        trim: true
+    },
+    isSpecialty: {
+        type: Boolean,
+        default: false
+    },
     seedlings: { 
         type: Number, 
         min: 1, 

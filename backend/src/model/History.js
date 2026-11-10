@@ -4,7 +4,7 @@ import mongoose from "mongoose"
 const historySchema = new mongoose.Schema({
     itemType: { 
         type: String, 
-        enum: ["Crop", "Supply"], 
+        enum: ["Crop", "Supply", "Listing"],
         required: true 
     },
     itemId: { 
@@ -13,7 +13,7 @@ const historySchema = new mongoose.Schema({
     },
     action: { 
         type: String, 
-        enum: ["edited", "deleted", "harvested"], 
+        enum: ["added", "edited", "archived", "restored", "deleted", "harvested"],
         required: true 
     },
     previousState: { 

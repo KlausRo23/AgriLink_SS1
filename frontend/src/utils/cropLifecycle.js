@@ -13,6 +13,7 @@ export function getDaysUntilDate(value) {
 }
 
 export function getCropLifecycleStatus(crop) {
+  if (crop.status === "harvested") return "harvested"
   const daysUntilHarvest = getDaysUntilDate(crop.harvestDate)
   if (daysUntilHarvest === null) return "growing"
   if (daysUntilHarvest < 0) return "overdue"

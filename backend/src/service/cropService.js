@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import Crop from "../model/Crop.js"
+import Listing from "../model/Listing.js"
 import Archive from "../model/Archive.js"
 import History from "../model/History.js"
 import Inventory from "../model/Inventory.js"
@@ -16,6 +17,8 @@ import { presentInventory } from "./inventoryService.js"
 import { cropPresets, CROP_STATUS } from "../constant/cropPreset.js"
 import { SOURCE_TYPES } from "../constant/inventory.js"
 import { archiveItem } from "./archiveService.js"
+import { createListing } from "./listingService.js"
+import { ROLES } from "../constant/roles.js"
 
 const DAY_MS = 86_400_000
 
@@ -38,9 +41,12 @@ async function findOwnCropOrFail(id, requester) {
 // Adds the numbers the crop detail screen shows (age, harvest in, growth progress) and a full image URL
 function presentCrop(crop) {
     const { image, __v, ...rest } = crop
+    const asDateOnly = (value) => value ? new Date(value).toISOString().slice(0, 10) : null
 
-    const planted = new Date(crop.datePlanted).getTime()
-    const harvest = new Date(crop.harvestDate).getTime()
+    const datePlanted = asDateOnly(crop.datePlanted)
+    const harvestDate = asDateOnly(crop.harvestDate)
+    const planted = new Date(datePlanted).getTime()
+    const harvest = new Date(harvestDate).getTime()
     const isGrowing = crop.status === CROP_STATUS.GROWING
     const endMs = isGrowing ? Date.now() : new Date(crop.actualHarvestDate ?? crop.harvestDate).getTime()
 
@@ -52,10 +58,17 @@ function presentCrop(crop) {
     const base = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "")
     return {
         ...rest,
+        datePlanted,
+        harvestDate,
+        sellDate: asDateOnly(crop.sellDate),
+        actualHarvestDate: asDateOnly(crop.actualHarvestDate),
+        actualSellDate: asDateOnly(crop.actualSellDate),
+        id: String(crop._id),
         imageUrl: image ? `${base}${image}` : null,
         ageDays,
         daysToHarvest,
-        growthProgress
+        growthProgress,
+        maturityDays: cropPresets[crop.name]?.daysToHarvest ?? null
     }
 }
 
@@ -71,13 +84,17 @@ async function recordHistory(action, owner, itemId, previousState, newState = nu
 // ---------- Farmer (owner only) ----------
 
 export async function createCrop(body, file, requester) {
+    assertCanManageCrops(requester)
     const { data, errors, isValid } = validateCropInput(body, { partial: false })
     if (!isValid) throw new AppError("Validation failed", 400, errors)
 
     // Category and dates come from the preset, never from the client
     const preset = cropPresets[data.name]
     const shelfLifeDays = data.shelfLifeDays ?? preset.shelfLifeDays
-    const harvestDate = addDays(data.datePlanted, preset.daysToHarvest)
+    const harvestDate = data.harvestDate ?? addDays(data.datePlanted, preset.daysToHarvest)
+    if (new Date(harvestDate) < new Date(data.datePlanted)) {
+        throw new AppError("Validation failed", 400, { harvestDate: "harvestDate cannot be before datePlanted" })
+    }
     const sellDate = addDays(harvestDate, shelfLifeDays)
 
     // The image is verified and processed only after the text fields pass
@@ -95,6 +112,7 @@ export async function createCrop(body, file, requester) {
             owner: requester.id, // always from the token, never from req.body
             ...(imagePath && { image: imagePath })
         })
+        await recordHistory("added", requester.id, crop._id, null, crop.toObject())
         return presentCrop(crop.toObject())
     } catch (err) {
         await deleteCropPhoto(imagePath) // don't leave orphan files
@@ -103,6 +121,7 @@ export async function createCrop(body, file, requester) {
 }
 
 export async function getAllCrops(query, requester) {
+    assertCanManageCrops(requester)
     const { filter, page, limit, errors, isValid } = parseCropListQuery(query)
     if (!isValid) throw new AppError("Invalid query", 400, errors)
 
@@ -120,11 +139,13 @@ export async function getAllCrops(query, requester) {
 }
 
 export async function getCropById(id, requester) {
+    assertCanManageCrops(requester)
     const crop = await findOwnCropOrFail(id, requester)
     return presentCrop(crop.toObject())
 }
 
 export async function updateCrop(id, body, file, requester) {
+    assertCanManageCrops(requester)
     const crop = await findOwnCropOrFail(id, requester)
 
     if (crop.status !== CROP_STATUS.GROWING) {
@@ -142,24 +163,38 @@ export async function updateCrop(id, body, file, requester) {
     }
     delete data.name
 
-    if (Object.keys(data).length === 0 && !file) {
+    const preset = cropPresets[crop.name]
+    const effectivePlantingDate = data.datePlanted ?? crop.datePlanted
+    const effectiveHarvestDate = data.harvestDate
+        ?? (data.datePlanted ? addDays(data.datePlanted, preset.daysToHarvest) : crop.harvestDate)
+    if (new Date(effectiveHarvestDate) < new Date(effectivePlantingDate)) {
+        throw new AppError("Validation failed", 400, { harvestDate: "harvestDate cannot be before datePlanted" })
+    }
+
+    const removeImage = data.removeImage === true
+    delete data.removeImage
+    if (Object.keys(data).length === 0 && !file && !removeImage) {
         throw new AppError("Nothing to update", 400)
     }
 
     const previous = crop.toObject()
-    const preset = cropPresets[crop.name]
-
     // Dates follow the rules: harvest = planted + daysToHarvest, sell-by = harvest + shelf life
     if (data.datePlanted) {
         crop.datePlanted = data.datePlanted
+    }
+    if (data.harvestDate) crop.harvestDate = data.harvestDate
+    if (data.datePlanted && !data.harvestDate) {
         crop.harvestDate = addDays(data.datePlanted, preset.daysToHarvest)
     }
     if (data.shelfLifeDays) crop.shelfLifeDays = data.shelfLifeDays
-    if (data.datePlanted || data.shelfLifeDays) {
+    if (data.datePlanted || data.harvestDate || data.shelfLifeDays) {
         crop.sellDate = addDays(crop.harvestDate, crop.shelfLifeDays)
     }
 
     for (const field of ["description", "seedlings", "isOrganic"]) {
+        if (field in data) crop[field] = data[field]
+    }
+    for (const field of ["field", "isSpecialty"]) {
         if (field in data) crop[field] = data[field]
     }
 
@@ -168,6 +203,8 @@ export async function updateCrop(id, body, file, requester) {
     if (file) {
         newImage = await processCropPhoto(file.buffer)
         crop.image = newImage
+    } else if (removeImage) {
+        crop.image = null
     }
 
     try {
@@ -177,7 +214,7 @@ export async function updateCrop(id, body, file, requester) {
         throw err
     }
 
-    if (newImage) await deleteCropPhoto(oldImage) // remove the replaced photo
+    if (newImage || removeImage) await deleteCropPhoto(oldImage)
 
     const updated = crop.toObject()
     await recordHistory("edited", requester.id, crop._id, previous, updated)
@@ -186,11 +223,10 @@ export async function updateCrop(id, body, file, requester) {
 
 /**
  * Record a harvest: crop -> "harvested", and the yield goes into Inventory.
- * Steps: validate, check status and early harvest, process photo,
- * flip the crop atomically (blocks double harvest), create the inventory row,
- * and roll the crop back if the inventory insert fails (no transactions needed).
+ * A direct listing is created from the new inventory row and is submitted for review.
  */
 export async function harvestCrop(id, body, file, requester) {
+    assertCanManageCrops(requester)
     const crop = await findOwnCropOrFail(id, requester)
 
     if (crop.status !== CROP_STATUS.GROWING) {
@@ -239,6 +275,7 @@ export async function harvestCrop(id, body, file, requester) {
     }
 
     let inventory
+    let listing = null
     try {
         inventory = await Inventory.create({
             name: crop.name,
@@ -255,20 +292,36 @@ export async function harvestCrop(id, body, file, requester) {
             crop: crop._id,
             ...(imagePath && { image: imagePath })
         })
+        if (data.directToListing) {
+            listing = await createListing({
+                inventoryId: String(inventory._id),
+                price: data.listingPrice,
+                stock: data.quantity,
+                description: (data.notes || crop.description || `Fresh ${crop.name.toLowerCase()} from the farm.`).slice(0, 300)
+            }, requester)
+        }
     } catch (err) {
-        // Roll the crop back so it isn't "harvested" with nothing in inventory
-        await Crop.updateOne(
-            { _id: crop._id, owner: requester.id },
-            {
-                $set: {
-                    status: CROP_STATUS.GROWING,
-                    actualHarvestDate: null,
-                    shelfLifeDays: previous.shelfLifeDays,
-                    sellDate: previous.sellDate
-                }
+        try {
+            if (inventory) {
+                await Listing.deleteMany({ inventory: inventory._id, owner: requester.id })
+                await Inventory.deleteOne({ _id: inventory._id, owner: requester.id })
             }
-        )
-        await deleteInventoryPhoto(imagePath)
+            await Crop.updateOne(
+                { _id: crop._id, owner: requester.id },
+                {
+                    $set: {
+                        status: CROP_STATUS.GROWING,
+                        actualHarvestDate: null,
+                        shelfLifeDays: previous.shelfLifeDays,
+                        sellDate: previous.sellDate
+                    }
+                }
+            )
+            await deleteInventoryPhoto(imagePath)
+        } catch (rollbackError) {
+            console.error("Harvest rollback failed:", rollbackError)
+            throw new AppError("Could not complete the harvest and its rollback was incomplete. Please contact support.", 500)
+        }
 
         if (err.code === 11000) {
             throw new AppError("This crop has already been added to inventory", 409)
@@ -277,14 +330,26 @@ export async function harvestCrop(id, body, file, requester) {
     }
 
     const updated = await Crop.findById(crop._id).lean()
-    await recordHistory("harvested", requester.id, crop._id, previous.toObject(), updated)
+    await recordHistory("harvested", requester.id, crop._id, previous.toObject(), {
+        ...updated,
+        quantity: data.quantity,
+        unit: data.unit
+    })
 
     return {
         crop: presentCrop(updated),
-        inventory: presentInventory(inventory.toObject())
+        inventory: presentInventory(inventory.toObject()),
+        listing
     }
 }
 
 export async function archiveCrop(id, rawReason, requester) {
+    assertCanManageCrops(requester)
     await archiveItem("Crop", id, rawReason, requester)
+}
+
+function assertCanManageCrops(requester) {
+    if (![ROLES.USER, ROLES.FARMER].includes(requester.role)) {
+        throw new AppError("Forbidden", 403)
+    }
 }

@@ -13,9 +13,22 @@ import { LISTING_STATUS } from "../constant/listing.js"
 const baseUrl = () => (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "")
 
 // Best effort: a failed history write must never break the real operation
-async function recordHistory(itemType, action, owner, itemId, previousState) {
+function historyItemType(itemType, snapshot) {
+    if (itemType !== "Inventory") return itemType
+    return snapshot.category === "crop" ? "Crop" : "Supply"
+}
+
+async function recordHistory(itemType, action, owner, snapshot, reason = "") {
     try {
-        await History.create({ itemType, action, owner, itemId, previousState, newState: null })
+        const state = { ...snapshot, ...(reason && { reason }) }
+        await History.create({
+            itemType: historyItemType(itemType, snapshot),
+            action,
+            owner,
+            itemId: snapshot._id,
+            previousState: action === "restored" ? null : state,
+            newState: action === "restored" ? state : null
+        })
     } catch (err) {
         console.error("History write failed:", err.message)
     }
@@ -41,6 +54,7 @@ async function moveToArchive({ doc, itemType, reason, owner }) {
         throw err
     }
 
+    await recordHistory(itemType, "archived", owner, snapshot, reason)
     return { archived, snapshot }
 }
 
@@ -58,9 +72,6 @@ const TYPES = {
         label: "Crop",
         describe: (s) => ({ status: s.status, datePlanted: s.datePlanted }),
         imageOf: (s) => s.image,
-        afterArchive: async (snapshot, owner) => {
-            await recordHistory("Crop", "deleted", owner, snapshot._id, snapshot)
-        },
         cleanup: async (snapshot, owner) => {
             await deleteCropPhoto(snapshot.image)
 
@@ -77,11 +88,6 @@ const TYPES = {
         describe: (s) => ({ category: s.category, quantity: s.quantity, unit: s.unit, sourceType: s.sourceType }),
         imageOf: (s) => s.image,
         afterArchive: async (snapshot, owner) => {
-            // History tracks Crop and Supply only
-            if (snapshot.category === "supply") {
-                await recordHistory("Supply", "deleted", owner, snapshot._id, snapshot)
-            }
-
             // Listings can't sell stock that no longer exists, so they go to the archive too (restorable)
             const listings = await Listing.find({ inventory: snapshot._id, owner })
             for (const listing of listings) {
@@ -266,6 +272,7 @@ export async function restoreArchive(id, requester) {
         throw err
     }
 
+    await recordHistory(entry.itemType, "restored", requester.id, snapshot)
     return { itemType: entry.itemType, id: restored._id }
 }
 
@@ -276,6 +283,7 @@ export async function deleteArchive(id, requester) {
 
     const snapshot = entry.toObject().snapshot
     await entry.deleteOne()
+    await recordHistory(entry.itemType, "deleted", requester.id, snapshot, entry.reason)
 
     try {
         await type.cleanup?.(snapshot, requester.id)

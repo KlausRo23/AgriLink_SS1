@@ -63,9 +63,13 @@ export function validateFarmInput(body = {}, { partial = false } = {}) {
     }
 
     if (has("deliveryMode") && !errors.deliveryMode) {
-        const v = clean(body.deliveryMode)
-        if (!DELIVERY_MODES.includes(v)) errors.deliveryMode = `deliveryMode must be one of: ${DELIVERY_MODES.join(", ")}`
-        else data.deliveryMode = v
+        const list = toArray(body.deliveryMode)
+        const modes = list ? [...new Set(list.map((mode) => clean(mode)).filter(Boolean))] : null
+        if (!modes || modes.length === 0) {
+            errors.deliveryMode = "deliveryMode must contain at least one delivery method"
+        } else if (modes.some((mode) => !DELIVERY_MODES.includes(mode))) {
+            errors.deliveryMode = `deliveryMode must contain only: ${DELIVERY_MODES.join(", ")}`
+        } else data.deliveryMode = modes
     }
 
     if (has("deliverableRegions") && !errors.deliverableRegions) {
@@ -100,9 +104,11 @@ export function validateFarmInput(body = {}, { partial = false } = {}) {
                 errors.startedFarming = "startedFarming must be a year or valid past date (YYYY or YYYY-MM-DD)"
             } else data.startedFarming = date
         }
+    } else if (has("startedFarming")) {
+        data.startedFarming = null
     }
 
-    if (has("specialty") && body.specialty !== "") {
+    if (has("specialty")) {
         const list = toArray(body.specialty)
         const specialties = list ? [...new Set(list.map((item) => clean(item)).filter(Boolean))] : null
         if (!specialties) {
@@ -110,6 +116,12 @@ export function validateFarmInput(body = {}, { partial = false } = {}) {
         } else if (specialties.some((item) => !SPECIALTIES.includes(item))) {
             errors.specialty = "specialty contains an invalid crop"
         } else data.specialty = specialties
+    }
+
+    if (has("naturallyGrown")) {
+        if (body.naturallyGrown === true || body.naturallyGrown === "true") data.naturallyGrown = true
+        else if (body.naturallyGrown === false || body.naturallyGrown === "false") data.naturallyGrown = false
+        else errors.naturallyGrown = "naturallyGrown must be a boolean"
     }
 
     if (has("description") && !errors.description) {

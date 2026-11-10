@@ -374,8 +374,28 @@
   font-size: 0.65rem;
 }
 
+.history-load-more {
+  display: block;
+  margin: 18px auto 0;
+  padding: 9px 16px;
+  border: 1px solid #dce2d2;
+  border-radius: 8px;
+  background: #fff;
+  color: #536a3d;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.history-load-more:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .history-filter-button:focus-visible,
 .history-archive-button:focus-visible,
+.history-load-more:focus-visible,
 .history-search input:focus-visible,
 .history-empty button:focus-visible,
 .archive-modal button:focus-visible,

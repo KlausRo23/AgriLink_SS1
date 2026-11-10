@@ -3,17 +3,19 @@ import { Camera, Check, Sprout, X } from "lucide-react"
 import "../../styles/harvest-modals.css"
 
 const UNITS = ["kg", "pieces", "heads", "sack", "liters", "bottles"]
+const LISTING_UNITS = ["kg", "heads", "sack"]
 
-function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
+function RecordHarvestModal({ open, crop, onClose, onSubmit, errorMessage = "" }) {
   const [quantity, setQuantity] = useState("")
   const [unit, setUnit] = useState("kg")
   const [notes, setNotes] = useState("")
   const [shelfLifeDays, setShelfLifeDays] = useState(crop?.shelfLifeDays || 7)
-  const [autoListing, setAutoListing] = useState(false)
+  const [directToListing, setDirectToListing] = useState(false)
   const [listingPrice, setListingPrice] = useState("")
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState("")
   const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!open) return undefined
@@ -54,7 +56,7 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
     reader.readAsDataURL(file)
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const parsedQuantity = Number(quantity)
     const parsedShelfLife = Number(shelfLifeDays)
@@ -66,24 +68,31 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
       setError("Shelf life must be from 1 to 3650 days.")
       return
     }
-    const parsedPrice = Number(listingPrice)
-    if (autoListing && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
-      setError("Enter a listing price greater than zero.")
+    if (directToListing && !LISTING_UNITS.includes(unit)) {
+      setError("Direct listing is available for kilograms, sacks, or heads.")
       return
     }
+    const parsedListingPrice = Number(listingPrice)
+    if (directToListing && (!Number.isFinite(parsedListingPrice) || parsedListingPrice < 0.01 || parsedListingPrice > 99999 || Math.round(parsedListingPrice * 100) / 100 !== parsedListingPrice)) {
+      setError("Enter a listing price from PHP 0.01 to PHP 99,999 (up to 2 decimal places).")
+      return
+    }
+    setSubmitting(true)
+    setError("")
     try {
-      onSubmit?.({
+      await onSubmit?.({
         quantity: parsedQuantity,
         unit,
         notes: notes.trim(),
         shelfLifeDays: parsedShelfLife,
-        autoListing,
-        listingPrice: autoListing ? parsedPrice : null,
+        directToListing,
+        listingPrice: directToListing ? parsedListingPrice : null,
         photo,
-        photoPreview,
       })
     } catch (submitError) {
       setError(submitError?.message || "Could not record this harvest. Please try again.")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -142,19 +151,20 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
           </label>
 
           <label className="harvest-auto-listing-option">
-            <input type="checkbox" checked={autoListing} onChange={(event) => setAutoListing(event.target.checked)} />
+            <input type="checkbox" checked={directToListing} onChange={(event) => setDirectToListing(event.target.checked)} />
             <span>
-              <strong>Add harvest to Listings now</strong>
-              <small>Choose this to send the harvest to Listings instead of Inventory.</small>
+              <strong>Send this harvest to Listings</strong>
+              <small>The yield will be added to Inventory and a listing will be submitted for review.</small>
             </span>
           </label>
 
-          {autoListing && (
+          {directToListing && (
             <label>
               Listing price per {unit} (PHP)
               <input
                 type="number"
                 min="0.01"
+                max="99999"
                 step="0.01"
                 value={listingPrice}
                 onChange={(event) => setListingPrice(event.target.value)}
@@ -184,11 +194,11 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
             </span>
           </label>
 
-          {error && <p className="harvest-modal-error" role="alert">{error}</p>}
+          {(errorMessage || error) && <p className="harvest-modal-error" role="alert">{errorMessage || error}</p>}
 
           <footer className="harvest-modal-footer">
-            <button type="button" className="harvest-cancel-button" onClick={onClose}>Cancel</button>
-            <button type="submit" className="harvest-submit-button"><Check size={16} aria-hidden="true" /> Continue</button>
+            <button type="button" className="harvest-cancel-button" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="harvest-submit-button" disabled={submitting}><Check size={16} aria-hidden="true" /> {submitting ? "Recording..." : "Continue"}</button>
           </footer>
         </form>
       </section>

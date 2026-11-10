@@ -7,6 +7,7 @@ function AddInventoryListingModal({ item, onClose, onSubmit }) {
   const [price, setPrice] = useState("")
   const [description, setDescription] = useState(item.description || `Fresh ${item.name.toLowerCase()} from the farm.`)
   const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -35,12 +36,17 @@ function AddInventoryListingModal({ item, onClose, onSubmit }) {
       return
     }
 
-    const saved = onSubmit({
+    setSubmitting(true)
+    setError("")
+    Promise.resolve(onSubmit({
       quantity: listedQuantity,
       price: pricePerUnit,
       description: description.trim(),
-    })
-    if (!saved) setError("Could not save this listing. Please try again.")
+    }))
+      .catch((submitError) => {
+        setError(submitError.message || "Could not submit this listing. Please try again.")
+      })
+      .finally(() => setSubmitting(false))
   }
 
   return (
@@ -56,7 +62,7 @@ function AddInventoryListingModal({ item, onClose, onSubmit }) {
             <h2 id="inventory-listing-title">Add {item.name} to listing</h2>
             <p>Choose how much of this crop to offer. Your inventory quantity will stay unchanged.</p>
           </div>
-          <button type="button" className="inventory-dialog-close" onClick={onClose} aria-label="Close dialog">
+          <button type="button" className="inventory-dialog-close" onClick={onClose} disabled={submitting} aria-label="Close dialog">
             <X size={19} aria-hidden="true" />
           </button>
         </header>
@@ -93,15 +99,15 @@ function AddInventoryListingModal({ item, onClose, onSubmit }) {
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              maxLength={500}
+              maxLength={300}
               rows={4}
               required
             />
           </label>
           {error && <p className="inventory-dialog-error" role="alert">{error}</p>}
           <footer>
-            <button type="button" className="inventory-button-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="inventory-button-primary">Create listing</button>
+            <button type="button" className="inventory-button-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="inventory-button-primary" disabled={submitting}>{submitting ? "Submitting..." : "Create listing"}</button>
           </footer>
         </form>
       </section>

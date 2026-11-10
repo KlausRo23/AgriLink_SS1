@@ -1,6 +1,6 @@
 import express from "express"
 
-import { getSettings, updateSettings, updateRegion } from "../controller/settingsController.js"
+import { getSettings, updateSettings, updateRegion, changePassword } from "../controller/settingsController.js"
 import { verifyAccessToken } from "../middleware/auth.js"
 
 const router = express.Router()
@@ -11,5 +11,6 @@ router.use(verifyAccessToken)
 router.get('/', getSettings)
 router.patch('/', updateSettings)
 router.patch('/region', updateRegion)
+router.post('/password', changePassword)
 
 export default router

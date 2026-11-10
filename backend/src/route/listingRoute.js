@@ -2,7 +2,7 @@ import express from "express"
 import { verifyAccessToken } from "../middleware/auth.js"
 import authorize from "../middleware/verifyRoles.js"
 import isFarmer from "../middleware/isFarmer.js"
-import checkListingOwnership from "../middleware/checkListingOwnership.js"
+//import checkListingOwnership from "../middleware/checkListingOwnership.js"
 import { ROLES, ADMIN_ROLES } from "../constant/roles.js"
 import {
     createListing,
@@ -40,28 +40,28 @@ router.patch("/admin/return-listing/:id",
 
 //Buyer marketplace (approved listings only)
 router.get("/marketplace",
-    verifyAccessToken, authorize(ROLES.BUYER, ROLES.FARMER, ...ADMIN_ROLES), getMarketplace)
+    verifyAccessToken, authorize(ROLES.BUYER, ROLES.USER, ROLES.FARMER, ...ADMIN_ROLES), getMarketplace)
 
 router.get("/marketplace/:id",
-    verifyAccessToken, authorize(ROLES.BUYER, ROLES.FARMER, ...ADMIN_ROLES), getMarketplaceListing)
+    verifyAccessToken, authorize(ROLES.BUYER, ROLES.USER, ROLES.FARMER, ...ADMIN_ROLES), getMarketplaceListing)
 
 //Farmer Route (owner only)
 router.get("/my-listings",
     verifyAccessToken, isFarmer, getMyListings)
 
 router.get("/listing/:id",
-    verifyAccessToken, isFarmer, checkListingOwnership, getMyListing)
+    verifyAccessToken, isFarmer, /*checkListingOwnership,*/ getMyListing)
 
 router.post("/submit-listing",
     verifyAccessToken, isFarmer, createListing)
 
 router.put("/edit-listing/:id",
-    verifyAccessToken, isFarmer, checkListingOwnership, editListing)
+    verifyAccessToken, isFarmer, /*checkListingOwnership,*/ editListing)
 
 router.patch("/resubmit-listing/:id",
-    verifyAccessToken, isFarmer, checkListingOwnership, resubmitListing)
+    verifyAccessToken, isFarmer, /*checkListingOwnership,*/ resubmitListing)
 
 router.delete("/delete-listing/:id",
-    verifyAccessToken, isFarmer, checkListingOwnership, deleteListing)
+    verifyAccessToken, isFarmer, /*checkListingOwnership,*/ deleteListing)
 
 export default router

@@ -5,7 +5,7 @@ function initials(name) {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
 }
 
-function ConversationCard({ conversation, selected, onSelect, onArchive, onUnarchive }) {
+function ConversationCard({ conversation, selected, onSelect, onArchive, onUnarchive, disabled }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const latestMessage = conversation.messages.at(-1)
   const preview = conversation.status === "pending"
@@ -48,6 +48,7 @@ function ConversationCard({ conversation, selected, onSelect, onArchive, onUnarc
           aria-label={`More actions for ${conversation.customerName}`}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
+          disabled={disabled}
           onClick={() => setMenuOpen((open) => !open)}
         >
           <MoreVertical size={17} />

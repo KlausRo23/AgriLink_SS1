@@ -1,10 +1,13 @@
 import Settings, {
     ALLOWED_FONT_SIZES,
     ALLOWED_THEMES
-} from '../models/Settings.js'
-import User from '../models/User.js'
+} from '../model/Settings.js'
+import User from '../model/User.js'
 import { REGION_IDS } from '../constant/region.js'
 import { toPublicUser } from '../utils/publicUser.js'
+import bcrypt from 'bcryptjs'
+import { validatePassword } from '../utils/sanitizeInput.js'
+import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js'
 
 // Each updatable field: allowed values, error message, and success phrase
 const FIELD_RULES = {
@@ -95,7 +98,7 @@ export async function updateSettings(req, res) {
 // Send { region: "<id>" } to set it, or { region: null } to clear it.
 export async function updateRegion(req, res) {
     try {
-        const { region } = req.body
+        const { region } = req.body ?? {}
 
         if (region === undefined) {
             return res.status(400).json({message: "Region is required"})
@@ -121,5 +124,55 @@ export async function updateRegion(req, res) {
     } catch (error) {
         console.error("Failed to update region", error)
         return res.status(500).json({message: "Internal Error"})
+    }
+}
+
+export async function changePassword(req, res) {
+    try {
+        const { currentPassword, newPassword } = req.body ?? {}
+        if (
+            typeof currentPassword !== "string" ||
+            !currentPassword ||
+            currentPassword.length > 100 ||
+            typeof newPassword !== "string"
+        ) {
+            return res.status(400).json({ message: "Current and new passwords are required" })
+        }
+        if (!validatePassword(newPassword)) {
+            return res.status(400).json({
+                message: "Password must be 8-100 characters and include uppercase, lowercase, a number, and a symbol"
+            })
+        }
+
+        const user = await User.findById(req.user.id)
+        if (!user) return res.status(404).json({ message: "User doesn't exist" })
+
+        if (!(await bcrypt.compare(currentPassword, user.password))) {
+            return res.status(401).json({ message: "Current password is incorrect" })
+        }
+        if (await bcrypt.compare(newPassword, user.password)) {
+            return res.status(400).json({ message: "Choose a password you haven't used before" })
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10)
+        user.refreshToken = generateRefreshToken(user)
+        await user.save()
+
+        res.cookie("refreshToken", user.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+        })
+
+        return res.status(200).json({
+            message: "Password updated",
+            accessToken: generateAccessToken(user),
+            user: toPublicUser(user)
+        })
+    } catch (error) {
+        console.error("Failed to change password", error)
+        return res.status(500).json({ message: "Internal Error" })
     }
 }

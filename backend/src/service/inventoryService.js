@@ -36,15 +36,19 @@ export function presentInventory(item) {
     }
 
     const base = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "")
-    return { ...rest, imageUrl: image ? `${base}${image}` : null, daysToExpire, isExpired }
+    const status = isExpired
+        ? "spoiled"
+        : daysToExpire !== null && daysToExpire <= 7
+            ? "near-spoiling"
+            : "fresh"
+    return { ...rest, imageUrl: image ? `${base}${image}` : null, daysToExpire, isExpired, status }
 }
 
-// History tracks Crop and Supply only. Best effort: a failed write must never break the real operation.
-async function recordSupplyHistory(action, item, previousState, newState = null) {
-    if (item.category !== "supply") return
+// Best effort: history writes must never break the real inventory operation.
+async function recordInventoryHistory(action, item, previousState, newState = null) {
     try {
         await History.create({
-            itemType: "Supply",
+            itemType: item.category === "crop" ? "Crop" : "Supply",
             itemId: item._id,
             action,
             previousState,
@@ -96,6 +100,9 @@ export async function createInventory(body, file, requester) {
             owner: requester.id,             // always from the token, never from req.body
             ...(imagePath && { image: imagePath })
         })
+        if (item.sourceType === SOURCE_TYPES.MANUAL) {
+            await recordInventoryHistory("added", item, null, item.toObject())
+        }
         return presentInventory(item.toObject())
     } catch (err) {
         await deleteInventoryPhoto(imagePath) // don't leave orphan files
@@ -108,6 +115,8 @@ export async function updateInventory(id, body, file, requester) {
 
     const { data, errors, isValid } = validateInventoryInput(body, { partial: true })
     if (!isValid) throw new AppError("Validation failed", 400, errors)
+    const removeImage = data.removeImage === true
+    delete data.removeImage
 
     // Items created by a harvest keep their identity. Quantity, notes, expiry etc. can still be edited.
     if (item.sourceType === SOURCE_TYPES.HARVEST) {
@@ -121,7 +130,7 @@ export async function updateInventory(id, body, file, requester) {
         delete data.category
     }
 
-    if (Object.keys(data).length === 0 && !file) {
+    if (Object.keys(data).length === 0 && !file && !removeImage) {
         throw new AppError("Nothing to update", 400)
     }
 
@@ -137,6 +146,8 @@ export async function updateInventory(id, body, file, requester) {
     if (file) {
         newImage = await processInventoryPhoto(file.buffer)
         item.image = newImage
+    } else if (removeImage) {
+        item.image = null
     }
 
     try {
@@ -146,10 +157,10 @@ export async function updateInventory(id, body, file, requester) {
         throw err
     }
 
-    if (newImage) await deleteInventoryPhoto(oldImage) // remove the replaced photo
+    if (newImage || removeImage) await deleteInventoryPhoto(oldImage) // remove the replaced or deleted photo
 
     const updated = item.toObject()
-    await recordSupplyHistory("edited", item, previous, updated)
+    await recordInventoryHistory("edited", item, previous, updated)
     return presentInventory(updated)
 }
 

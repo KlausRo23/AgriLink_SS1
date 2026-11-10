@@ -1,10 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AlertTriangle, Leaf, Plus, Sprout } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import CropCard from "../component/card/CropCard"
 import CropManagementModal from "../component/modal/CropManagementModal"
 import ProgressLogsModal from "../component/modal/ProgressLogsModal"
-import { loadCropPreview, updateSavedCrops } from "../data/crops"
+import { archiveCrop as archiveCropRequest, getCrops, updateCrop as updateCropRequest } from "../api/api"
 import { getCropLifecycleStatus, getDaysUntilDate } from "../utils/cropLifecycle"
 import "../styles/crops.css"
 
@@ -13,16 +13,33 @@ const FILTERS = [
   { value: "growing", label: "Growing" },
   { value: "ready-to-harvest", label: "Ready to harvest" },
   { value: "overdue", label: "Overdue" },
+  { value: "harvested", label: "Harvested" },
 ]
-const LIFECYCLE_ORDER = { overdue: 0, "ready-to-harvest": 1, growing: 2 }
+const LIFECYCLE_ORDER = { overdue: 0, "ready-to-harvest": 1, growing: 2, harvested: 3 }
 
 function CropPage() {
   const navigate = useNavigate()
-  const [crops, setCrops] = useState(loadCropPreview)
+  const [crops, setCrops] = useState([])
   const [filter, setFilter] = useState("all")
   const [dialog, setDialog] = useState(null)
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false)
-  const [storageError, setStorageError] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
+
+  useEffect(() => {
+    let active = true
+    getCrops()
+      .then(({ data }) => {
+        if (active) setCrops(data.data.crops)
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.response?.data?.message || "Could not load your crops.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [])
   const sortedCrops = [...crops].sort((first, second) => {
     const statusDifference = LIFECYCLE_ORDER[getCropLifecycleStatus(first)] - LIFECYCLE_ORDER[getCropLifecycleStatus(second)]
     if (statusDifference !== 0) return statusDifference
@@ -33,6 +50,7 @@ function CropPage() {
     : sortedCrops.filter((crop) => getCropLifecycleStatus(crop) === filter)
   const progressCrops = crops
     .map((crop) => {
+      if (crop.status === "harvested") return null
       const daysUntilHarvest = getDaysUntilDate(crop.harvestDate)
       const lifecycleStatus = getCropLifecycleStatus(crop)
       const progressStatus = daysUntilHarvest !== null && daysUntilHarvest < 0
@@ -47,36 +65,35 @@ function CropPage() {
     .filter(Boolean)
     .sort((first, second) => (first.harvestDate || "").localeCompare(second.harvestDate || ""))
 
-  function updateCrop(updatedCrop) {
+  async function updateCrop(updatedCrop, { imageFile, removeImage }) {
+    const formData = new FormData()
+    for (const field of ["datePlanted", "harvestDate", "shelfLifeDays", "description", "field", "seedlings", "isOrganic", "isSpecialty"]) {
+      if (updatedCrop[field] !== undefined && updatedCrop[field] !== null) {
+        formData.set(field, String(updatedCrop[field]))
+      }
+    }
+    if (updatedCrop.seedlings === null) formData.set("seedlings", "")
+    if (removeImage) formData.set("removeImage", "true")
+    if (imageFile) formData.set("image", imageFile)
+
     try {
-      updateSavedCrops((savedCrops) => savedCrops.some((crop) => crop.id === updatedCrop.id)
-        ? savedCrops.map((crop) => crop.id === updatedCrop.id ? updatedCrop : crop)
-        : [...savedCrops, updatedCrop])
-      setCrops((previous) => previous.map((crop) => crop.id === updatedCrop.id ? updatedCrop : crop))
-      setStorageError("")
+      const { data } = await updateCropRequest(updatedCrop.id, formData)
+      setCrops((previous) => previous.map((crop) => crop.id === updatedCrop.id ? data.data : crop))
       setDialog(null)
-      return true
+      return data.data
     } catch (error) {
-      console.error("Could not save crop changes:", error)
-      setStorageError("Could not save this crop. Check browser storage and try again.")
-      return false
+      throw new Error(error.response?.data?.message || "Could not save crop changes.", { cause: error })
     }
   }
 
-  function archiveCrop(crop) {
-    const archivedCrop = { ...crop, archived: true, archivedAt: new Date().toISOString() }
+  async function archiveCrop(crop) {
     try {
-      updateSavedCrops((savedCrops) => savedCrops.some((entry) => entry.id === crop.id)
-        ? savedCrops.map((entry) => entry.id === crop.id ? archivedCrop : entry)
-        : [...savedCrops, archivedCrop])
+      await archiveCropRequest(crop.id)
       setCrops((previous) => previous.filter((entry) => entry.id !== crop.id))
-      setStorageError("")
       setDialog(null)
       return true
     } catch (error) {
-      console.error("Could not archive crop:", error)
-      setStorageError("Could not archive this crop. Check browser storage and try again.")
-      return false
+      throw new Error(error.response?.data?.message || "Could not archive this crop.", { cause: error })
     }
   }
 
@@ -127,8 +144,10 @@ function CropPage() {
           })}
         </nav>
 
-        {storageError && <p className="crop-dialog-error" role="alert">{storageError}</p>}
-        {visibleCrops.length ? (
+        {loadError && <p className="crop-dialog-error" role="alert">{loadError}</p>}
+        {loading ? (
+          <div className="crop-empty-state" role="status"><p>Loading crops...</p></div>
+        ) : visibleCrops.length ? (
           <section className="crop-grid" aria-label="Crops sorted by harvest priority">
             {visibleCrops.map((crop) => (
               <CropCard
@@ -149,7 +168,7 @@ function CropPage() {
           </div>
         )}
 
-        <p className="dashboard-demo-note"><Leaf size={14} aria-hidden="true" /> Crop page preview with sample data</p>
+        {!loading && crops.length > 0 && <p className="dashboard-demo-note"><Leaf size={14} aria-hidden="true" /> Your crops are saved to your AgriLink account.</p>}
       </div>
 
       <CropManagementModal

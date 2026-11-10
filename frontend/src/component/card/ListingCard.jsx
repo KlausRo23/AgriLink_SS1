@@ -23,7 +23,7 @@ function formatPeso(value) {
   }).format(value)
 }
 
-function ListingCard({ listing, onOpen, onUnsubmit, onEdit }) {
+function ListingCard({ listing, onOpen, onUnsubmit, onEdit, onResubmit, saving }) {
   const status = STATUS_LABELS[listing.status] ? listing.status : "pending"
 
   return (
@@ -44,6 +44,7 @@ function ListingCard({ listing, onOpen, onUnsubmit, onEdit }) {
         </div>
         <p className="listing-card-description">{listing.description}</p>
         <p className="listing-card-seller">{listing.seller} · Listed for buyers</p>
+        {listing.reviewNote && <p className="listing-card-review-note">Review note: {listing.reviewNote}</p>}
 
         <div className="listing-card-metrics">
           <div>
@@ -70,19 +71,29 @@ function ListingCard({ listing, onOpen, onUnsubmit, onEdit }) {
 
         {status === "pending" ? (
           <div className="listing-card-review-actions">
-            <button type="button" className="listing-unsubmit-button" onClick={() => onUnsubmit?.(listing)}>
+            <button type="button" className="listing-unsubmit-button" onClick={() => onUnsubmit?.(listing)} disabled={saving}>
               <Undo2 size={14} aria-hidden="true" /> Unsubmit
             </button>
-            <button type="button" className="listing-card-edit-button" onClick={() => onEdit?.(listing)}>
+            <button type="button" className="listing-card-edit-button" onClick={() => onEdit?.(listing)} disabled={saving}>
               <Pencil size={13} aria-hidden="true" /> Edit
+            </button>
+            <button type="button" className="listing-card-details-link" onClick={() => onOpen?.(listing)}>View details</button>
+          </div>
+        ) : status === "returned" ? (
+          <div className="listing-card-review-actions">
+            <button type="button" className="listing-card-edit-button" onClick={() => onEdit?.(listing)} disabled={saving}>
+              <Pencil size={13} aria-hidden="true" /> Edit
+            </button>
+            <button type="button" className="listing-unsubmit-button" onClick={() => onResubmit?.(listing)} disabled={saving}>
+              <Undo2 size={14} aria-hidden="true" /> {saving ? "Submitting..." : "Resubmit"}
             </button>
             <button type="button" className="listing-card-details-link" onClick={() => onOpen?.(listing)}>View details</button>
           </div>
         ) : (
           <div className="listing-card-review-actions">
-            <button type="button" className="listing-card-edit-button" onClick={() => onEdit?.(listing)}>
+            {status !== "rejected" && <button type="button" className="listing-card-edit-button" onClick={() => onEdit?.(listing)} disabled={saving}>
               <Pencil size={13} aria-hidden="true" /> Edit
-            </button>
+            </button>}
             <button type="button" className="listing-card-details-link" onClick={() => onOpen?.(listing)}>View details</button>
           </div>
         )}

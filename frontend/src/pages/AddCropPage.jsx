@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react"
 import { ArrowLeft, CalendarDays, Check, ChevronDown, ImagePlus, Leaf, MapPin, Search, Sprout, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { createCrop } from "../api/api"
 import "../styles/add-crop.css"
 
 const CROPS = [
@@ -69,8 +70,6 @@ const REGIONS = [
 
 const CATEGORIES = ["All", "Vegetable", "Fruit", "Root crop", "Grain", "Legume"]
 const RECENT_CROPS = ["Okra", "Tomato", "Mango"]
-const STORAGE_KEY = "agrilink-crops-preview"
-
 function localDateString(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -107,6 +106,8 @@ function AddCropPage() {
   const [regionCode, setRegionCode] = useState("Region VII")
   const [selectedName, setSelectedName] = useState("")
   const [specialtyCrop, setSpecialtyCrop] = useState(false)
+  const [isOrganic, setIsOrganic] = useState(false)
+  const [seedlings, setSeedlings] = useState("")
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
   const [field, setField] = useState("")
@@ -115,8 +116,10 @@ function AddCropPage() {
   const [shelfLifeDays, setShelfLifeDays] = useState("")
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
+  const [imageFile, setImageFile] = useState(null)
   const [imageName, setImageName] = useState("")
   const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
   const region = REGIONS.find((item) => item.code === regionCode) || REGIONS[8]
   const selectedCrop = CROPS.find((item) => item.name === selectedName)
@@ -154,10 +157,6 @@ function AddCropPage() {
       setError("Choose a JPEG, PNG or WebP crop photo.")
       return
     }
-    if (file.size > 3 * 1024 * 1024) {
-      setError("Crop photos must be 3MB or smaller.")
-      return
-    }
     const reader = new FileReader()
     reader.onload = () => {
       if (typeof reader.result !== "string") {
@@ -165,6 +164,7 @@ function AddCropPage() {
         return
       }
       setImage(reader.result)
+      setImageFile(file)
       setImageName(file.name)
       setError("")
     }
@@ -172,7 +172,7 @@ function AddCropPage() {
     reader.readAsDataURL(file)
   }
 
-  function handleSubmit(event, cropId) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (!selectedCrop) {
       setError("Choose a crop before adding it.")
@@ -184,33 +184,26 @@ function AddCropPage() {
       return
     }
 
-    const crop = {
-      id: `crop-${cropId}`,
-      name: selectedCrop.name,
-      category: selectedCrop.group === "Fruit" ? "Fruit" : "Vegetable",
-      status: "growing",
-      isOrganic: false,
-      seedlings: null,
-      datePlanted: plantedDate,
-      harvestDate: estimatedHarvest || addDays(plantedDate, selectedCrop.days),
-      sellDate: addDays(estimatedHarvest || addDays(plantedDate, selectedCrop.days), parsedShelfLife),
-      shelfLifeDays: parsedShelfLife,
-      description: description.trim(),
-      field,
-      image,
-      imageName,
-      isSpecialty: specialtyCrop,
-      region: region.name,
-    }
+    const formData = new FormData()
+    formData.set("name", selectedCrop.name)
+    formData.set("datePlanted", plantedDate)
+    formData.set("shelfLifeDays", String(parsedShelfLife))
+    formData.set("description", description.trim())
+    formData.set("field", field.trim())
+    formData.set("isSpecialty", String(specialtyCrop))
+    formData.set("isOrganic", String(isOrganic))
+    if (seedlings) formData.set("seedlings", seedlings)
+    if (estimatedHarvest) formData.set("harvestDate", estimatedHarvest)
+    if (imageFile) formData.set("image", imageFile)
 
+    setSubmitting(true)
     try {
-      const savedCrops = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]")
-      if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...savedCrops, crop]))
-      navigate("/crops")
+      await createCrop(formData)
+      navigate("/crops", { replace: true })
     } catch (saveError) {
-      console.error("Could not save crop preview:", saveError)
-      setError("Could not save the crop in this browser. Check storage settings and try again.")
+      setError(saveError.response?.data?.message || "Could not save the crop. Please try again.")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -231,7 +224,7 @@ function AddCropPage() {
           <p>Choose a crop and add its planting details to your farm.</p>
         </header>
 
-        <form className="add-crop-form" onSubmit={(event) => handleSubmit(event, crypto.randomUUID())}>
+        <form className="add-crop-form" onSubmit={handleSubmit}>
           <section className="add-crop-section">
             <div className="add-crop-section-heading">
               <span className="add-crop-section-icon"><Sprout size={17} aria-hidden="true" /></span>
@@ -338,6 +331,15 @@ function AddCropPage() {
               Field / section <span>(optional)</span>
               <input value={field} onChange={(event) => setField(event.target.value)} maxLength={80} placeholder="e.g. North field, Section A" />
             </label>
+            <label className="add-crop-field">
+              Number of seedlings <span>(optional)</span>
+              <input type="number" min="1" max="1000000" step="1" value={seedlings} onChange={(event) => setSeedlings(event.target.value)} placeholder="e.g. 120" />
+            </label>
+            <label className="add-crop-specialty">
+              <input type="checkbox" checked={isOrganic} onChange={(event) => setIsOrganic(event.target.checked)} />
+              <span className="add-crop-checkmark"><Check size={13} aria-hidden="true" /></span>
+              <span><strong>Organically grown</strong><small>Mark this crop as organic.</small></span>
+            </label>
 
             <div className="add-crop-date-grid">
               <label className="add-crop-field">
@@ -374,7 +376,7 @@ function AddCropPage() {
               <input id="add-crop-image-input" ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
               <button type="button" className="add-crop-image-picker" onClick={() => imageInput.current?.click()} aria-label={imageName ? `Change crop photo ${imageName}` : "Choose crop image"}>
                 {image ? <img src={image} alt="Selected crop preview" /> : <ImagePlus size={21} aria-hidden="true" />}
-                <span><strong>{imageName || "Upload a crop photo"}</strong><small>JPG, PNG or WebP · up to 3MB</small></span>
+                <span><strong>{imageName || "Upload a crop photo"}</strong><small>JPG, PNG or WebP · up to 20MB</small></span>
               </button>
             </div>
           </section>
@@ -383,11 +385,10 @@ function AddCropPage() {
 
           <div className="add-crop-submit-row">
             <button type="button" className="add-crop-cancel" onClick={() => navigate("/crops")}>Cancel</button>
-            <button type="submit" className="add-crop-submit" disabled={!selectedCrop}>
-              <Check size={16} aria-hidden="true" /> Add crop
+            <button type="submit" className="add-crop-submit" disabled={!selectedCrop || submitting}>
+              <Check size={16} aria-hidden="true" /> {submitting ? "Saving..." : "Add crop"}
             </button>
           </div>
-          <p className="add-crop-preview-note">Crop records are saved to this browser preview and are not synced to the server.</p>
         </form>
       </div>
     </main>

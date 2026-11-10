@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import { useFormContext } from "../context/useFormContext"
 import "../styles/Farmerformpage.css"
 
 const SUFFIXES = ["Jr", "Sr", "I", "II", "III"]
@@ -60,7 +61,9 @@ function validateFile(file, allowedTypes, label) {
   return ""
 }
 
-function VerificationFormPage({ onSubmit }) {
+function VerificationFormPage() {
+  const navigate = useNavigate()
+  const { submitVerification } = useFormContext()
   const [values, setValues] = useState(EMPTY_VALUES)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -69,7 +72,6 @@ function VerificationFormPage({ onSubmit }) {
   const [facePhotoPreview, setFacePhotoPreview] = useState("")
   const [submitError, setSubmitError] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [validated, setValidated] = useState(false)
   const facePhotoInput = useRef(null)
   const supportingDocumentInput = useRef(null)
 
@@ -158,15 +160,10 @@ function VerificationFormPage({ onSubmit }) {
     formData.append("supportingDocuments", supportingDocument)
     formData.append("facePhoto", facePhoto)
 
-    if (!onSubmit) {
-      setSubmitError("The verification form is ready, but its submission API is not connected yet.")
-      return
-    }
-
     setSubmitting(true)
     try {
-      await onSubmit(formData)
-      setValidated(true)
+      await submitVerification(formData)
+      navigate("/dashboard", { replace: true })
     } catch (error) {
       const serverFields = error?.response?.data?.data
       if (serverFields && typeof serverFields === "object") {
@@ -183,21 +180,6 @@ function VerificationFormPage({ onSubmit }) {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (validated) {
-    return (
-      <main className="ff-page">
-        <div className="ff-shell">
-          <section className="ff-card ff-done" aria-live="polite">
-            <span className="ff-done-icon" aria-hidden="true">✓</span>
-            <h1 className="ff-done-title">Verification submitted</h1>
-            <p className="ff-done-text">Your documents are ready for review. We’ll update you when the review is complete.</p>
-            <Link className="ff-btn ff-btn-ghost" to="/farm">Back to farm details</Link>
-          </section>
-        </div>
-      </main>
-    )
   }
 
   return (

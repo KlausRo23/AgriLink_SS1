@@ -26,7 +26,7 @@ const isBlank = (v) => v === "" || v === null || v === undefined
  * Whitelists, sanitizes and validates crop input.
  * partial = true  -> only validates fields that were sent (edit)
  * partial = false -> required fields must exist (create)
- * Anything not listed here (owner, category, status, harvestDate, sellDate, _id...) is ignored.
+ * Anything not listed here (owner, category, status, sellDate, _id...) is ignored.
  */
 export function validateCropInput(body = {}, { partial = false } = {}) {
     const errors = {}
@@ -54,10 +54,40 @@ export function validateCropInput(body = {}, { partial = false } = {}) {
         } else data.datePlanted = date
     }
 
+    if (has("harvestDate") && !isBlank(body.harvestDate)) {
+        const date = typeof body.harvestDate === "string" ? new Date(body.harvestDate) : null
+        const latest = new Date(Date.now() + 3650 * DAY_MS)
+        if (!date || Number.isNaN(date.getTime()) || date > latest || date < MIN_DATE) {
+            errors.harvestDate = "harvestDate must be a valid date from 2000 through the next 10 years"
+        } else data.harvestDate = date
+    }
+
+    if (data.datePlanted && data.harvestDate && data.harvestDate < data.datePlanted) {
+        errors.harvestDate = "harvestDate cannot be before datePlanted"
+    }
+
     if (has("description")) {
         if (typeof body.description !== "string" || body.description.length > 1000) {
             errors.description = "description must be text of 1000 characters or less"
         } else data.description = cleanText(body.description)
+    }
+
+    if (has("field")) {
+        if (typeof body.field !== "string" || body.field.length > 80) {
+            errors.field = "field must be text of 80 characters or less"
+        } else data.field = clean(body.field)
+    }
+
+    if (has("isSpecialty")) {
+        const isSpecialty = parseBoolean(body.isSpecialty)
+        if (isSpecialty === null) errors.isSpecialty = "isSpecialty must be true or false"
+        else data.isSpecialty = isSpecialty
+    }
+
+    if (has("removeImage")) {
+        const removeImage = parseBoolean(body.removeImage)
+        if (removeImage === null) errors.removeImage = "removeImage must be true or false"
+        else data.removeImage = removeImage
     }
 
     if (has("shelfLifeDays") && !isBlank(body.shelfLifeDays)) {

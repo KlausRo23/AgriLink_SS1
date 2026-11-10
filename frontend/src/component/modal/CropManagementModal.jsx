@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { Archive, ImagePlus, X } from "lucide-react"
+import { getAssetUrl } from "../../api/api"
 import "../../styles/crops.css"
 
 function getShelfLifeDays(crop) {
@@ -20,13 +21,19 @@ function getSellDate(harvestDate, shelfLifeDays) {
 
 function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
   const imageInput = useRef(null)
-  const [name, setName] = useState(crop?.name || "")
   const [description, setDescription] = useState(crop?.description || "")
   const [harvestDate, setHarvestDate] = useState(crop?.harvestDate || "")
   const [shelfLifeDays, setShelfLifeDays] = useState(String(getShelfLifeDays(crop)))
-  const [image, setImage] = useState(crop?.image || "")
-  const [imageName, setImageName] = useState(crop?.imageName || (crop?.image ? "Current crop photo" : ""))
+  const [image, setImage] = useState(crop?.imageUrl || crop?.image || "")
+  const [imageFile, setImageFile] = useState(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const [field, setField] = useState(crop?.field || "")
+  const [seedlings, setSeedlings] = useState(crop?.seedlings == null ? "" : String(crop.seedlings))
+  const [isOrganic, setIsOrganic] = useState(Boolean(crop?.isOrganic))
+  const [isSpecialty, setIsSpecialty] = useState(Boolean(crop?.isSpecialty))
+  const [imageName, setImageName] = useState(crop?.imageName || ((crop?.imageUrl || crop?.image) ? "Current crop photo" : ""))
   const [error, setError] = useState("")
+  const [saving, setSaving] = useState(false)
 
   if (!mode || !crop) return null
 
@@ -38,10 +45,6 @@ function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
       setError("Choose a JPEG, PNG or WebP crop photo.")
       return
     }
-    if (file.size > 3 * 1024 * 1024) {
-      setError("Crop photos must be 3MB or smaller.")
-      return
-    }
     const reader = new FileReader()
     reader.onload = () => {
       if (typeof reader.result !== "string") {
@@ -49,6 +52,8 @@ function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
         return
       }
       setImage(reader.result)
+      setImageFile(file)
+      setRemoveImage(false)
       setImageName(file.name)
       setError("")
     }
@@ -77,33 +82,49 @@ function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
         {mode === "edit" ? (
           <form
             className="crop-dialog-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault()
               const parsedShelfLife = Number(shelfLifeDays)
               if (!Number.isInteger(parsedShelfLife) || parsedShelfLife < 1 || parsedShelfLife > 3650) {
                 setError("Shelf life must be from 1 to 3650 days.")
                 return
               }
-              const saved = onSave({
-                ...crop,
-                name: name.trim(),
-                description: description.trim(),
-                harvestDate,
-                sellDate: getSellDate(harvestDate, parsedShelfLife),
-                shelfLifeDays: parsedShelfLife,
-                image,
-                imageName,
-              })
-              if (saved === false) setError("Could not save this crop. Check browser storage and try again.")
+              if (!harvestDate) {
+                setError("Estimated harvest date is required.")
+                return
+              }
+              setSaving(true)
+              setError("")
+              try {
+                await onSave({
+                  ...crop,
+                  description: description.trim(),
+                  harvestDate,
+                  sellDate: getSellDate(harvestDate, parsedShelfLife),
+                  shelfLifeDays: parsedShelfLife,
+                  field: field.trim(),
+                  seedlings: seedlings ? Number(seedlings) : null,
+                  isOrganic,
+                  isSpecialty,
+                }, { imageFile, removeImage })
+              } catch (saveError) {
+                setError(saveError.message || "Could not save crop changes.")
+              } finally {
+                setSaving(false)
+              }
             }}
           >
             <label>
               Crop name
-              <input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} required />
+              <input value={crop.name} readOnly aria-readonly="true" />
             </label>
             <label>
               Estimated harvest date
               <input type="date" value={harvestDate} min={crop.datePlanted || undefined} onChange={(event) => setHarvestDate(event.target.value)} required />
+            </label>
+            <label>
+              Planted date
+              <input type="date" value={crop.datePlanted || ""} readOnly aria-readonly="true" />
             </label>
             <label>
               Shelf life (days)
@@ -113,19 +134,35 @@ function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
               Description
               <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} rows={3} />
             </label>
+            <label>
+              Field / section
+              <input value={field} onChange={(event) => setField(event.target.value)} maxLength={80} />
+            </label>
+            <label>
+              Number of seedlings
+              <input type="number" min="1" max="1000000" step="1" value={seedlings} onChange={(event) => setSeedlings(event.target.value)} />
+            </label>
+            <label className="crop-dialog-check">
+              <input type="checkbox" checked={isOrganic} onChange={(event) => setIsOrganic(event.target.checked)} />
+              Organically grown
+            </label>
+            <label className="crop-dialog-check">
+              <input type="checkbox" checked={isSpecialty} onChange={(event) => setIsSpecialty(event.target.checked)} />
+              Specialty crop
+            </label>
             <div className="crop-dialog-image-field">
               <span>Crop photo <small>(optional)</small></span>
               <input ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
               <button type="button" className="crop-dialog-image-picker" onClick={() => imageInput.current?.click()}>
-                {image ? <img src={image} alt="Crop preview" /> : <ImagePlus size={20} aria-hidden="true" />}
-                <span>{imageName || "Upload a crop photo"}<small>JPG, PNG or WebP · up to 3MB</small></span>
+                {image ? <img src={getAssetUrl(image)} alt="Crop preview" /> : <ImagePlus size={20} aria-hidden="true" />}
+                <span>{imageName || "Upload a crop photo"}<small>JPG, PNG or WebP · up to 20MB</small></span>
               </button>
-              {image && <button type="button" className="crop-dialog-image-remove" onClick={() => { setImage(""); setImageName("") }}>Remove photo</button>}
+              {image && <button type="button" className="crop-dialog-image-remove" onClick={() => { setImage(""); setImageFile(null); setImageName(""); setRemoveImage(true) }}>Remove photo</button>}
             </div>
             {error && <p className="crop-dialog-error" role="alert">{error}</p>}
             <footer>
-              <button type="button" className="crop-dialog-cancel" onClick={onClose}>Cancel</button>
-              <button type="submit" className="crop-dialog-save">Save changes</button>
+              <button type="button" className="crop-dialog-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+              <button type="submit" className="crop-dialog-save" disabled={saving}>{saving ? "Saving..." : "Save changes"}</button>
             </footer>
           </form>
         ) : (
@@ -138,11 +175,20 @@ function CropManagementModal({ crop, mode, onClose, onSave, onArchive }) {
               <button
                 type="button"
                 className="crop-dialog-archive"
-                onClick={() => {
-                  if (onArchive(crop) === false) setError("Could not archive this crop. Check browser storage and try again.")
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true)
+                  setError("")
+                  try {
+                    await onArchive(crop)
+                  } catch (archiveError) {
+                    setError(archiveError.message || "Could not archive this crop.")
+                  } finally {
+                    setSaving(false)
+                  }
                 }}
               >
-                Archive crop
+                {saving ? "Archiving..." : "Archive crop"}
               </button>
             </footer>
           </div>

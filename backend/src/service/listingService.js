@@ -2,8 +2,10 @@ import mongoose from "mongoose"
 import Listing from "../model/Listing.js"
 import Inventory from "../model/Inventory.js"
 import Farmer from "../model/Farmer.js"
+import Farm from "../model/Farm.js"
 import Crop from "../model/Crop.js"
 import Schedule from "../model/Schedule.js"
+import History from "../model/History.js"
 import AppError from "../utils/AppError.js"
 import { validateListingInput, validateReviewNote, parseListingListQuery } from "../utils/listingValidator.js"
 import { LISTING_STATUS, LISTING_UNITS } from "../constant/listing.js"
@@ -12,11 +14,26 @@ import { archiveItem } from "./archiveService.js"
 
 const DAY_MS = 86_400_000
 const MAX_CARE_ENTRIES = 200
-const POPULATE_INVENTORY = { path: "inventory", select: "image icon quantity expirationDate" }
+const POPULATE_INVENTORY = { path: "inventory", select: "image icon quantity expirationDate harvestDate" }
 
 // Editing any of these means the admin should look at the listing again.
 // Changing only showCareLog does not (it only changes what buyers can see).
 const REVIEWED_FIELDS = ["price", "stock", "description"]
+
+async function recordListingHistory(action, listing, previousState = null) {
+    try {
+        await History.create({
+            itemType: "Listing",
+            itemId: listing._id,
+            action,
+            previousState,
+            newState: action === "deleted" ? null : listing.toObject(),
+            owner: listing.owner
+        })
+    } catch (err) {
+        console.error("History write failed:", err.message)
+    }
+}
 
 function assertValidId(id) {
     if (typeof id !== "string" || !mongoose.isValidObjectId(id)) {
@@ -85,6 +102,7 @@ function presentListing(listing, { withQuantity = false } = {}) {
         imageUrl: inv?.image ? `${base}${inv.image}` : null,
         icon: inv?.icon ?? "📦",
         expirationDate: inv?.expirationDate ?? null,
+        harvestDate: inv?.harvestDate ?? null,
         ...(withQuantity && { inventoryQuantity: inv ? inv.quantity : null })
     }
 }
@@ -142,12 +160,25 @@ async function attachSellers(listings, { hideOwner }) {
     const farmers = await Farmer.find({ ssoUserId: { $in: owners } })
         .select("ssoUserId firstName lastName suffix region")
         .lean()
+    const farms = await Farm.find({ owner: { $in: farmers.map((farmer) => farmer._id) } })
+        .select("owner farmName location")
+        .lean()
     const byUser = new Map(farmers.map((f) => [f.ssoUserId, f]))
+    const byFarmer = new Map(farms.map((farm) => [String(farm.owner), farm]))
 
     return listings.map((listing) => {
         const f = byUser.get(listing.owner)
+        const farm = f ? byFarmer.get(String(f._id)) : null
         const seller = f
-            ? { farmerId: f._id, firstName: f.firstName, lastName: f.lastName, suffix: f.suffix, region: f.region }
+            ? {
+                farmerId: f._id,
+                firstName: f.firstName,
+                lastName: f.lastName,
+                suffix: f.suffix,
+                region: f.region,
+                farmName: farm?.farmName ?? "",
+                location: farm?.location ?? ""
+            }
             : null
 
         if (!hideOwner) return { ...listing, seller }
@@ -194,6 +225,7 @@ export async function createListing(body, requester) {
             status: LISTING_STATUS.PENDING,
             owner: requester.id           // always from the token, never from req.body
         })
+        await recordListingHistory("added", listing)
         return loadPresented(listing._id, { withQuantity: true })
     } catch (err) {
         if (err.code === 11000) {
@@ -208,17 +240,21 @@ export async function getOwnListings(query, requester) {
     if (!isValid) throw new AppError("Invalid query", 400, errors)
 
     const { rows, pagination } = await paginate({ ...filter, owner: requester.id }, { page, limit })
-    return { listings: rows.map((l) => presentListing(l, { withQuantity: true })), pagination }
+    const presented = rows.map((l) => presentListing(l, { withQuantity: true }))
+    return { listings: await attachSellers(presented, { hideOwner: true }), pagination }
 }
 
 // The farmer always sees their own care log, so they know exactly what buyers would see
 export async function getOwnListing(id, requester) {
     const listing = await findOwnListingOrFail(id, requester)
-    return loadPresented(listing._id, { withQuantity: true, withCareLog: true })
+    const presented = await loadPresented(listing._id, { withQuantity: true, withCareLog: true })
+    const [withSeller] = await attachSellers([presented], { hideOwner: true })
+    return { ...withSeller, isOwner: true }
 }
 
 export async function updateListing(id, body, requester) {
     const listing = await findOwnListingOrFail(id, requester)
+    const previous = listing.toObject()
 
     if (listing.status === LISTING_STATUS.REJECTED) {
         throw new AppError("Rejected listings cannot be edited. Delete it and submit a new one.", 409)
@@ -247,12 +283,14 @@ export async function updateListing(id, body, requester) {
     }
 
     await listing.save()
+    await recordListingHistory("edited", listing, previous)
     return loadPresented(listing._id, { withQuantity: true })
 }
 
 // After the admin returned it: the farmer fixed it and sends it back for review
 export async function resubmitListing(id, requester) {
     const listing = await findOwnListingOrFail(id, requester)
+    const previous = listing.toObject()
 
     if (listing.status !== LISTING_STATUS.RETURNED) {
         throw new AppError("Only returned listings can be resubmitted", 409)
@@ -265,6 +303,7 @@ export async function resubmitListing(id, requester) {
     clearReview(listing)
 
     await listing.save()
+    await recordListingHistory("edited", listing, previous)
     return loadPresented(listing._id, { withQuantity: true })
 }
 

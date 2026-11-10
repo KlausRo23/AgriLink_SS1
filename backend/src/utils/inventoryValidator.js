@@ -1,4 +1,5 @@
 import { INVENTORY_CATEGORIES, INVENTORY_UNITS, SOURCE_TYPES } from "../constant/inventory.js"
+import { LISTING_UNITS } from "../constant/listing.js"
 import { sanitizeInput } from "./sanitizeInput.js"
 
 const NAME_REGEX = /^[\p{L}\p{N}][\p{L}\p{N}\s.,'&()/-]*$/u
@@ -93,6 +94,12 @@ export function validateInventoryInput(body = {}, { partial = false } = {}) {
         else data.icon = v
     }
 
+    if (has("removeImage")) {
+        const removeImage = parseBoolean(body.removeImage)
+        if (removeImage === null) errors.removeImage = "removeImage must be true or false"
+        else data.removeImage = removeImage
+    }
+
     if (has("dateReceived") && !isBlank(body.dateReceived)) {
         const d = parseDate(body.dateReceived, { allowFuture: false })
         if (!d) errors.dateReceived = "dateReceived must be a valid date (YYYY-MM-DD) that is not in the future"
@@ -127,6 +134,20 @@ export function validateHarvestInput(body = {}) {
         if (!has(key) || isBlank(body[key])) errors[key] = `${key} is required`
     }
 
+    data.directToListing = false
+    if (has("directToListing") && !isBlank(body.directToListing)) {
+        const directToListing = parseBoolean(body.directToListing)
+        if (directToListing === null) errors.directToListing = "directToListing must be true or false"
+        else data.directToListing = directToListing
+    }
+
+    if (data.directToListing) {
+        const price = parseQuantity(body.listingPrice, { min: 0.01 })
+        if (price === null || price > 99999) {
+            errors.listingPrice = "listingPrice must be between 0.01 and 99,999 (max 2 decimals)"
+        } else data.listingPrice = price
+    }
+
     if (has("quantity") && !errors.quantity) {
         const n = parseQuantity(body.quantity, { min: 0.01 })
         if (n === null) errors.quantity = "quantity must be greater than 0 and at most 10,000,000 (max 2 decimals)"
@@ -137,6 +158,10 @@ export function validateHarvestInput(body = {}) {
         const v = typeof body.unit === "string" ? clean(body.unit) : ""
         if (!INVENTORY_UNITS.includes(v)) errors.unit = `unit must be one of: ${INVENTORY_UNITS.join(", ")}`
         else data.unit = v
+    }
+
+    if (data.directToListing && has("unit") && typeof body.unit === "string" && !LISTING_UNITS.includes(body.unit.trim())) {
+        errors.unit = `unit must be one of: ${LISTING_UNITS.join(", ")} to create a listing`
     }
 
     if (has("notes") && !isBlank(body.notes)) {

@@ -24,9 +24,12 @@ const farmSchema = new mongoose.Schema({
 		trim: true 
 	},
     deliveryMode: {
-        type: String,
-        enum: ["deliver", "3rd party service"],
-        required: true
+        type: [{ type: String, enum: ["deliver", "3rd party service"] }],
+        required: true,
+        validate: {
+            validator: (arr) => Array.isArray(arr) && arr.length > 0,
+            message: "At least one delivery method is required"
+        }
     },
     deliverableRegions: {
         type: [{ type: String, enum: REGION_IDS }],
@@ -43,6 +46,10 @@ const farmSchema = new mongoose.Schema({
     specialty: {
         type: [{ type: String, enum: SPECIALTIES }],
         required: false
+    },
+    naturallyGrown: {
+        type: Boolean,
+        default: true
     },
 
     // The Farmer document (not the SS1 user). One farm per farmer.

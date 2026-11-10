@@ -44,10 +44,13 @@ export function validateFarmerInput(body = {}, { partial = false } = {}) {
         }
     }
 
-    if (has("suffix") && body.suffix !== "") {
-        const v = clean(body.suffix)
-        if (!SUFFIXES.includes(v)) errors.suffix = `suffix must be one of: ${SUFFIXES.join(", ")}`
-        else data.suffix = v
+    if (has("suffix")) {
+        if (body.suffix === "") data.suffix = undefined
+        else {
+            const v = clean(body.suffix)
+            if (!SUFFIXES.includes(v)) errors.suffix = `suffix must be one of: ${SUFFIXES.join(", ")}`
+            else data.suffix = v
+        }
     }
 
     if (has("age") && !errors.age) {
@@ -68,25 +71,32 @@ export function validateFarmerInput(body = {}, { partial = false } = {}) {
         else data.bio = v
     }
 
-    if (has("mobileNumber") && body.mobileNumber !== "") {
-        const v = clean(body.mobileNumber).replace(/[\s-]/g, "")
-        if (!PH_MOBILE_REGEX.test(v)) errors.mobileNumber = "mobile number must look like 09XXXXXXXXX or +639XXXXXXXXX"
-        else data.mobileNumber = v
+    if (has("mobileNumber")) {
+        if (body.mobileNumber === "") data.mobileNumber = ""
+        else {
+            const v = clean(body.mobileNumber).replace(/[\s-]/g, "")
+            if (!PH_MOBILE_REGEX.test(v)) errors.mobileNumber = "mobile number must look like 09XXXXXXXXX or +639XXXXXXXXX"
+            else data.mobileNumber = v
+        }
     }
 
-    if (has("email") && body.email !== "") {
-        if (!validateEmail(body.email)) errors.email = "invalid email"
+    if (has("email")) {
+        if (body.email === "") data.email = ""
+        else if (!validateEmail(body.email)) errors.email = "invalid email"
         else data.email = body.email.trim().toLowerCase()
     }
 
-    if (has("facebook") && body.facebook !== "") {
-        const v = clean(body.facebook)
-        try {
-            const url = new URL(v)
-            if (url.protocol !== "https:" || !FACEBOOK_HOSTS.includes(url.hostname) || v.length > 200) throw new Error()
-            data.facebook = url.toString()
-        } catch {
-            errors.facebook = "facebook must be a valid https facebook.com link"
+    if (has("facebook")) {
+        if (body.facebook === "") data.facebook = ""
+        else {
+            const v = clean(body.facebook)
+            try {
+                const url = new URL(v)
+                if (url.protocol !== "https:" || !FACEBOOK_HOSTS.includes(url.hostname) || v.length > 200) throw new Error()
+                data.facebook = url.toString()
+            } catch {
+                errors.facebook = "facebook must be a valid https facebook.com link"
+            }
         }
     }
 

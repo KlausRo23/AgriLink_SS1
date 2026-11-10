@@ -1,12 +1,28 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { CROP_SPECIALTIES } from "../data/cropSpecialties"
 import { DELIVERY_MODES, normalizeDeliveryModes } from "../data/deliveryModes"
+import {
+  changeAccountPassword,
+  getAssetUrl,
+  getMyFarmProfile,
+  getMyFarmerProfile,
+  getUserSettings,
+  updateFarmProfile,
+  updateFarmerProfile,
+  updateUserRegion,
+  updateUserSettings,
+  setAccessToken,
+} from "../api/api"
 import {
   Check, CircleUserRound, CloudUpload, Edit3, ImagePlus, Leaf, LockKeyhole,
   LogOut, Moon, ShieldCheck, Sun,
 } from "lucide-react"
+import LogoutModal from "../component/modal/LogoutModal"
+import { useAuth } from "../context/useAuth"
+import { useFormContext } from "../context/useFormContext"
 import "../styles/settings.css"
 
-const SETTINGS_KEY = "agrilink-settings-preview"
 const TABS = [
   { id: "general", label: "General" },
   { id: "account", label: "Account Profile" },
@@ -32,77 +48,76 @@ const REGIONS = [
   { id: "barmm", label: "BARMM" },
 ]
 const SUFFIXES = ["Jr", "Sr", "I", "II", "III"]
-const SPECIALTIES = [
-  "Rice", "Corn", "Tomato", "Eggplant", "Okra", "Cabbage", "Carrot", "Onion", "Garlic", "Banana",
-  "Mango", "Papaya", "Watermelon", "Sweet Potato", "Cassava", "Ampalaya", "Sitaw", "Kangkong",
-  "Pechay", "Malunggay", "Lettuce", "Broccoli", "Cucumber", "Bell Pepper", "Chili Pepper", "Squash",
-  "Upo", "Patola", "Sayote", "Potato", "Radish", "Ginger", "Gabi", "Ube", "Peanut", "Mung Bean",
-  "Pineapple", "Calamansi", "Durian", "Lanzones", "Jackfruit", "Strawberry",
-]
-
-const DEFAULT_SETTINGS = {
+const EMPTY_SETTINGS = {
   theme: "light",
   fontSize: "default",
   account: {
-    firstName: "Juan",
-    middleName: "Miguel",
-    lastName: "Dela Cruz",
-    suffix: "Jr",
-    age: "35",
-    region: "ncr",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    suffix: "",
+    age: "",
+    region: "",
     bio: "",
-    mobileNumber: "09171234567",
-    email: "juandelacruz@gmail.com",
+    mobileNumber: "",
+    email: "",
     facebook: "",
   },
   farm: {
-    farmName: "Ungang Sakaghan",
-    location: "Quezon City, Metro Manila",
-    startedFarming: "2016",
-    description: "We grow fresh vegetables for our local community.",
-    specialty: ["Cabbage", "Lettuce", "Corn"],
-    deliveryMode: ["3rd party service"],
-    deliverableRegions: ["ncr"],
+    farmName: "",
+    location: "",
+    startedFarming: "",
+    description: "",
+    specialty: [],
+    deliveryMode: [],
+    deliverableRegions: [],
     naturallyGrown: true,
   },
 }
 
-function loadSettings() {
-  try {
-    const saved = window.localStorage.getItem(SETTINGS_KEY)
-    if (!saved) return DEFAULT_SETTINGS
-    const parsed = JSON.parse(saved)
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("Stored settings must be an object.")
-    }
-    const account = { ...DEFAULT_SETTINGS.account, ...parsed.account }
-    if (parsed.account?.fullName && !parsed.account.firstName) {
-      const [lastName = "", firstAndMiddle = "", suffix = ""] = parsed.account.fullName.split(",").map((part) => part.trim())
-      const [firstName = "", ...middleParts] = firstAndMiddle.split(/\s+/)
-      Object.assign(account, {
-        firstName,
-        middleName: middleParts.join(" "),
-        lastName,
-        suffix,
-      })
-    }
-    if (!REGIONS.some((region) => region.id === account.region)) account.region = DEFAULT_SETTINGS.account.region
-    const farm = { ...DEFAULT_SETTINGS.farm, ...parsed.farm }
-    if (parsed.farm?.name && !parsed.farm.farmName) farm.farmName = parsed.farm.name
-    if (parsed.farm?.startedYear && !parsed.farm.startedFarming) farm.startedFarming = parsed.farm.startedYear
-    if (parsed.farm?.crops && !parsed.farm.specialty) farm.specialty = parsed.farm.crops
-    farm.deliveryMode = normalizeDeliveryModes(
-      parsed.farm?.deliveryMode ?? parsed.farm?.deliveryMethods ?? DEFAULT_SETTINGS.farm.deliveryMode,
-    )
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed,
-      account,
-      farm,
-    }
-  } catch (error) {
-    console.error("Could not load settings preview:", error)
-    return DEFAULT_SETTINGS
+function mapSettingsResponse(preferences, farmer, farm, userEmail) {
+  return {
+    theme: preferences?.theme || EMPTY_SETTINGS.theme,
+    fontSize: preferences?.fontSize || EMPTY_SETTINGS.fontSize,
+    account: {
+      firstName: farmer.firstName || "",
+      middleName: farmer.middleName || "",
+      lastName: farmer.lastName || "",
+      suffix: farmer.suffix || "",
+      age: farmer.age == null ? "" : String(farmer.age),
+      region: farmer.region || "",
+      bio: farmer.bio || "",
+      mobileNumber: farmer.mobileNumber || "",
+      email: farmer.email || userEmail || "",
+      facebook: farmer.facebook || "",
+    },
+    farm: {
+      farmName: farm.farmName || "",
+      location: farm.location || "",
+      startedFarming: farm.startedFarming ? String(new Date(farm.startedFarming).getUTCFullYear()) : "",
+      description: farm.description || "",
+      specialty: Array.isArray(farm.specialty) ? farm.specialty : [],
+      deliveryMode: normalizeDeliveryModes(farm.deliveryMode),
+      deliverableRegions: Array.isArray(farm.deliverableRegions) ? farm.deliverableRegions : [],
+      naturallyGrown: farm.naturallyGrown ?? true,
+    },
+  }
+}
+
+async function fetchSettingsData(userEmail) {
+  const [preferencesResponse, farmerResponse, farmResponse] = await Promise.all([
+    getUserSettings(),
+    getMyFarmerProfile(),
+    getMyFarmProfile(),
+  ])
+  const farmer = farmerResponse.data?.data
+  const farm = farmResponse.data?.data
+  if (!farmer?._id || !farm?._id) throw new Error("Your farmer or farm profile could not be loaded.")
+
+  return {
+    settings: mapSettingsResponse(preferencesResponse.data?.settings, farmer, farm, userEmail),
+    farmer,
+    farm,
   }
 }
 
@@ -137,31 +152,72 @@ function SettingsCard({ title, description, children, className = "" }) {
 }
 
 function SettingPage() {
-  const [settings, setSettings] = useState(loadSettings)
+  const navigate = useNavigate()
+  const { logout, user } = useAuth()
+  const { status: onboardingStatus } = useFormContext()
+  const [settings, setSettings] = useState(EMPTY_SETTINGS)
+  const [farmerId, setFarmerId] = useState("")
+  const [farmId, setFarmId] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
+  const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
   const [notice, setNotice] = useState("")
   const [editingAccount, setEditingAccount] = useState(false)
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" })
   const [passwordError, setPasswordError] = useState("")
   const [passwordNotice, setPasswordNotice] = useState("")
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState("")
   const [farmPhoto, setFarmPhoto] = useState("")
+  const [farmPhotoFile, setFarmPhotoFile] = useState(null)
   const [profilePhoto, setProfilePhoto] = useState("")
-  const [documentName, setDocumentName] = useState("rsbsa-stub.pdf")
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null)
   const profilePhotoInput = useRef(null)
   const profilePhotoUrl = useRef("")
   const farmPhotoInput = useRef(null)
   const farmPhotoUrl = useRef("")
-  const documentInput = useRef(null)
+
+  const loadSettings = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError("")
+    try {
+      const { settings: loadedSettings, farmer, farm } = await fetchSettingsData(user?.email)
+      setSettings(loadedSettings)
+      setFarmerId(String(farmer._id))
+      setFarmId(String(farm._id))
+      setProfilePhoto(farmer.profile ? getAssetUrl(farmer.profile) : "")
+      setFarmPhoto(farm.farmPhoto ? getAssetUrl(farm.farmPhoto) : "")
+      setProfilePhotoFile(null)
+      setFarmPhotoFile(null)
+    } catch (error) {
+      console.error("Could not load settings:", error)
+      setLoadError(error.response?.data?.message || error.message || "Could not load your settings.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user])
 
   useEffect(() => {
+    if (isLoading) return
     document.documentElement.dataset.appearance = settings.theme
     document.documentElement.dataset.fontSize = settings.fontSize
-  }, [settings.fontSize, settings.theme])
+  }, [isLoading, settings.fontSize, settings.theme])
 
   useEffect(() => () => {
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
     if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadSettings()
+    })
+    return () => { active = false }
+  }, [loadSettings])
 
   function updateSettings(section, key, value) {
     setSettings((current) => ({
@@ -171,27 +227,73 @@ function SettingPage() {
     setNotice("")
   }
 
-  function saveSettings(event) {
+  async function saveSettings(event) {
     event?.preventDefault()
+    setSaving(true)
+    setNotice("")
     try {
-      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-      setNotice("Settings saved as a local preview. Photo/document uploads and account actions are not connected.")
+      if (activeTab === "general") {
+        const { data } = await updateUserSettings({
+          theme: settings.theme,
+          fontSize: settings.fontSize,
+        })
+        setSettings((current) => ({ ...current, ...data.settings }))
+        setNotice("Preferences saved to your account.")
+      } else if (activeTab === "account") {
+        if (!settings.account.region) throw new Error("Choose the region where you farm.")
+        const formData = new FormData()
+        for (const [key, value] of Object.entries(settings.account)) {
+          formData.append(key, value)
+        }
+        if (profilePhotoFile) formData.append("profile", profilePhotoFile)
+        const { data } = await updateFarmerProfile(farmerId, formData)
+        await updateUserRegion(settings.account.region)
+        if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
+        profilePhotoUrl.current = ""
+        setProfilePhotoFile(null)
+        setProfilePhoto(data.data.profile ? getAssetUrl(data.data.profile) : "")
+        setEditingAccount(false)
+        setNotice("Account profile saved.")
+      } else {
+        if (!settings.farm.deliveryMode.length || !settings.farm.deliverableRegions.length) {
+          throw new Error("Choose at least one delivery method and one delivery region.")
+        }
+        const formData = new FormData()
+        for (const [key, value] of Object.entries(settings.farm)) {
+          formData.append(key, Array.isArray(value) ? JSON.stringify(value) : String(value))
+        }
+        if (farmPhotoFile) formData.append("farmPhoto", farmPhotoFile)
+        const { data } = await updateFarmProfile(farmId, formData)
+        if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
+        farmPhotoUrl.current = ""
+        setFarmPhotoFile(null)
+        setFarmPhoto(data.data.farmPhoto ? getAssetUrl(data.data.farmPhoto) : "")
+        setNotice("Farm profile saved.")
+      }
     } catch (error) {
-      console.error("Could not save settings preview:", error)
-      setNotice("Settings could not be saved. Check your browser storage and try again.")
+      console.error("Could not save settings:", error)
+      setNotice(error.response?.data?.message || error.message || "Settings could not be saved.")
+      if (activeTab === "account") {
+        if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
+        profilePhotoUrl.current = ""
+        setProfilePhotoFile(null)
+        await loadSettings()
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
   function cancelSettings() {
-    setSettings(loadSettings())
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
     profilePhotoUrl.current = ""
-    setProfilePhoto("")
     if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
     farmPhotoUrl.current = ""
-    setFarmPhoto("")
-    setDocumentName("rsbsa-stub.pdf")
+    setProfilePhotoFile(null)
+    setFarmPhotoFile(null)
+    setEditingAccount(false)
     setNotice("")
+    void loadSettings()
   }
 
   function toggleFarmSelection(key, value) {
@@ -203,6 +305,7 @@ function SettingPage() {
 
   function updateFarmPhoto(event) {
     const [file] = event.target.files || []
+    event.target.value = ""
     if (!file) return
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
       setNotice("Choose a JPEG, PNG or WebP farm photo up to 3MB.")
@@ -211,11 +314,13 @@ function SettingPage() {
     if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
     farmPhotoUrl.current = URL.createObjectURL(file)
     setFarmPhoto(farmPhotoUrl.current)
+    setFarmPhotoFile(file)
     setNotice("")
   }
 
   function updateProfilePhoto(event) {
     const [file] = event.target.files || []
+    event.target.value = ""
     if (!file) return
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
       setNotice("Choose a JPEG, PNG or WebP profile photo up to 2MB.")
@@ -224,15 +329,11 @@ function SettingPage() {
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
     profilePhotoUrl.current = URL.createObjectURL(file)
     setProfilePhoto(profilePhotoUrl.current)
+    setProfilePhotoFile(file)
     setNotice("")
   }
 
-  function updateDocument(event) {
-    const [file] = event.target.files || []
-    if (file) setDocumentName(file.name)
-  }
-
-  function changePassword(event) {
+  async function changePassword(event) {
     event.preventDefault()
     const { current, next, confirm } = passwords
     if (!current) {
@@ -247,16 +348,42 @@ function SettingPage() {
       setPasswordError("The new passwords do not match.")
       return
     }
-    setPasswords({ current: "", next: "", confirm: "" })
     setPasswordError("")
-    setPasswordNotice("Password changes are not connected in this preview.")
+    setPasswordNotice("")
+    setPasswordSaving(true)
+    try {
+      const { data } = await changeAccountPassword({ currentPassword: current, newPassword: next })
+      if (!data?.accessToken) throw new Error("The password update response was incomplete.")
+      setAccessToken(data.accessToken)
+      setPasswords({ current: "", next: "", confirm: "" })
+      setPasswordNotice("Password changed successfully.")
+    } catch (error) {
+      console.error("Could not change password:", error)
+      setPasswordError(error.response?.data?.message || error.message || "Could not change your password.")
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    setLogoutError("")
+    try {
+      await logout()
+      setLogoutOpen(false)
+      navigate("/", { replace: true })
+    } catch (error) {
+      setLogoutError(error.response?.data?.message || "Could not log out. Please try again.")
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   return (
     <main className="dashboard-main settings-page">
       <header className="dashboard-topbar">
         <div className="dashboard-breadcrumb">Settings</div>
-        <button type="button" className="dashboard-avatar" aria-label="Account">F</button>
+        <button type="button" className="dashboard-avatar" aria-label="Account">{user?.name?.charAt(0)?.toUpperCase() || "F"}</button>
       </header>
 
       <div className="settings-content">
@@ -265,6 +392,12 @@ function SettingPage() {
           <p>Manage your preferences, account and farm details.</p>
         </header>
 
+        {loadError && (
+          <div className="settings-form-error" role="alert">
+            {loadError}
+            <button type="button" className="settings-outline-button" onClick={() => void loadSettings()}>Try again</button>
+          </div>
+        )}
         <nav className="settings-tabs" aria-label="Settings sections" role="tablist">
           {TABS.map((tab) => (
             <button
@@ -288,7 +421,10 @@ function SettingPage() {
             className="settings-panel"
             role="tabpanel"
             aria-labelledby={`settings-tab-${activeTab}`}
+            aria-busy={isLoading}
           >
+            {isLoading ? <p className="settings-upload-note" role="status">Loading your saved settings…</p> : loadError ? null : (
+              <>
             {activeTab === "general" && (
               <SettingsCard
                 title="Farmer Console Customization"
@@ -343,6 +479,12 @@ function SettingPage() {
                     <span>Accessibility Preview</span>
                     <p>AgriLink Accessibility Preview: Keeping local farmers connected with clean schedules, real-time harvests, and easy-to-read tools.</p>
                   </div>
+                </div>
+                <div className="settings-logout-row">
+                  <div><strong>Logout</strong><span>Sign out of AgriLink on this device. You will need to sign in again.</span></div>
+                  <button type="button" className="settings-logout-button" onClick={() => { setLogoutError(""); setLogoutOpen(true) }}>
+                    <LogOut size={14} /> Logout
+                  </button>
                 </div>
               </SettingsCard>
             )}
@@ -437,12 +579,10 @@ function SettingPage() {
                       </div>
                       {passwordError && <p className="settings-form-error" role="alert">{passwordError}</p>}
                       {passwordNotice && <p className="settings-form-notice" role="status">{passwordNotice}</p>}
-                      <button type="submit" className="settings-primary-button"><LockKeyhole size={14} /> Change Password</button>
+                      <button type="submit" className="settings-primary-button" disabled={passwordSaving}>
+                        <LockKeyhole size={14} /> {passwordSaving ? "Changing…" : "Change Password"}
+                      </button>
                     </form>
-                  </div>
-                  <div className="settings-logout-row">
-                    <div><strong>Logout</strong><span>Sign out of AgriLink on this device. You will need to sign in again.</span></div>
-                    <button type="button" className="settings-logout-button" onClick={() => setNotice("Logout is not connected in this preview.")}><LogOut size={14} /> Logout</button>
                   </div>
                 </SettingsCard>
               </>
@@ -456,7 +596,7 @@ function SettingPage() {
                     <input ref={farmPhotoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={updateFarmPhoto} hidden />
                     <button type="button" className="settings-cover-button" onClick={() => farmPhotoInput.current?.click()}><ImagePlus size={13} /> {farmPhoto ? "Change photo" : "Choose photo"}</button>
                   </div>
-                  <p className="settings-upload-note">Farm photo (optional) · JPEG, PNG or WebP, up to 3MB. Preview only.</p>
+                  <p className="settings-upload-note">Farm photo (optional) · JPEG, PNG or WebP, up to 3MB. Save changes to upload.</p>
                   <div className="settings-form-grid settings-farm-fields">
                     <SettingField label="Farm name">
                       <input maxLength={30} value={settings.farm.farmName} onChange={(event) => updateSettings("farm", "farmName", event.target.value)} />
@@ -482,7 +622,7 @@ function SettingPage() {
                   <fieldset className="settings-choice-fieldset">
                     <legend>Crops and specialties <span>(optional · select all that apply)</span></legend>
                     <div className="settings-crop-options">
-                      {SPECIALTIES.map((crop) => (
+                      {CROP_SPECIALTIES.map((crop) => (
                         <label className={settings.farm.specialty.includes(crop) ? "is-selected" : ""} key={crop}>
                           <input type="checkbox" checked={settings.farm.specialty.includes(crop)} onChange={() => toggleFarmSelection("specialty", crop)} />
                           {settings.farm.specialty.includes(crop) && <Check size={12} />}
@@ -531,28 +671,50 @@ function SettingPage() {
                   <div className="settings-rsbsa-card">
                     <div className="settings-rsbsa-heading">
                       <div><strong>RSBSA Registration</strong><span>Registry System for Basic Sectors in Agriculture · Reviewed within 2–3 business days</span></div>
-                      <span className="settings-pending-badge"><ShieldCheck size={13} /> Pending review</span>
+                      <span className="settings-pending-badge"><ShieldCheck size={13} /> {
+                        onboardingStatus?.verificationStatus === "approved" ? "Verified"
+                          : onboardingStatus?.verificationStatus === "rejected" ? "Needs resubmission"
+                            : onboardingStatus?.verificationStatus === "pending" ? "Pending review"
+                              : "Not submitted"
+                      }</span>
                     </div>
                     <div className="settings-document-row">
                       <span className="settings-document-icon"><CloudUpload size={15} /></span>
-                      <div><strong>{documentName}</strong><small>Supporting document · Preview only</small></div>
-                      <input ref={documentInput} type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={updateDocument} />
-                      <button type="button" onClick={() => setNotice("Document viewing is not connected in this preview.")}>View</button>
-                      <button type="button" onClick={() => documentInput.current?.click()}>Upload new</button>
+                      <div>
+                        <strong>RSBSA verification</strong>
+                        <small>
+                          {onboardingStatus?.verificationStatus === "approved" ? "Your farmer verification has been approved."
+                            : onboardingStatus?.verificationStatus === "rejected" ? "Your submission was rejected. Contact support for next steps."
+                              : onboardingStatus?.verificationStatus === "pending" ? "Your documents are being reviewed."
+                                : "No verification submission is on file."}
+                        </small>
+                      </div>
                     </div>
                   </div>
                 </SettingsCard>
+              </>
+            )}
               </>
             )}
           </div>
 
           <footer className="settings-actions">
             <span className={`settings-save-notice${notice ? " is-visible" : ""}`} role="status">{notice}</span>
-            <button type="button" className="settings-cancel-button" onClick={cancelSettings}>Cancel</button>
-            <button type="button" className="settings-save-button" onClick={saveSettings}>Save Changes</button>
+            <button type="button" className="settings-cancel-button" disabled={isLoading || saving} onClick={cancelSettings}>Cancel</button>
+            <button type="button" className="settings-save-button" disabled={isLoading || saving || Boolean(loadError)} onClick={saveSettings}>
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
           </footer>
         </div>
       </div>
+      {logoutOpen && (
+        <LogoutModal
+          onCancel={() => setLogoutOpen(false)}
+          onConfirm={handleLogout}
+          loading={loggingOut}
+          error={logoutError}
+        />
+      )}
     </main>
   )
 }

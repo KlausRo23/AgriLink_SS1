@@ -319,6 +319,13 @@ export async function login(req, res) {
             return res.status(401).json({message: "Wrong Credentials"})
         }
 
+        if (!user.isVerified) {
+            return res.status(403).json({
+                message: "Please verify your email before logging in",
+                code: "EMAIL_NOT_VERIFIED"
+            })
+        }
+
         if (user.status === "banned") {
             return res.status(403).json({message: "Your account is banned"})
         }
@@ -350,9 +357,35 @@ export async function login(req, res) {
 
 export async function logout(req, res) {
     try {
-        res.clearCookie('refreshToken', {path: '/'})
+        const refreshToken = req.cookies?.refreshToken
+        if (refreshToken) {
+            let decoded
+            try {
+                decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_TOKEN)
+            } catch {
+                decoded = null
+            }
+
+            if (decoded?.id) {
+                await User.updateOne(
+                    { _id: decoded.id, refreshToken },
+                    { $unset: { refreshToken: 1 } }
+                )
+            }
+        }
+
+        res.clearCookie('refreshToken', {
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: '/'
+        })
         return res.status(200).json({message: "Logged out successfully"})
     } catch (error) {
+        res.clearCookie('refreshToken', {
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: '/'
+        })
         console.error("Failed to log out", error)
         return res.status(500).json({message: "Internal Error"})   
     }
@@ -375,6 +408,14 @@ export async function refreshToken(req, res) {
 
         if (!user) {
             return res.status(404).json({success: false, message: "User doesn't exist"})
+        }
+
+        if (user.refreshToken !== token) {
+            return res.status(401).json({
+                success: false,
+                message: "Refresh token has been revoked",
+                data: null
+            })
         }
 
         const accessToken = generateAccessToken(user)

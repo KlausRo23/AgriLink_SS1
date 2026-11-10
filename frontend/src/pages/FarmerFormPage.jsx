@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useFormContext } from "../context/useFormContext"
 import "../styles/Farmerformpage.css"
 
 /* ------------------------------------------------------------------ */
@@ -196,9 +197,12 @@ function Section({ title, description, step, activeStep, children }) {
  */
 function FarmerFormPage() {
   const navigate = useNavigate()
+  const { submitFarmer } = useFormContext()
   const [values, setValues] = useState(EMPTY_VALUES)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
+  const [submitError, setSubmitError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
   const [photo, setPhoto] = useState(null)
   const [photoError, setPhotoError] = useState("")
   const [previewUrl, setPreviewUrl] = useState("")
@@ -305,8 +309,9 @@ function FarmerFormPage() {
     })
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    setSubmitError("")
 
     const nextErrors = validateAll(values)
     setErrors(nextErrors)
@@ -320,7 +325,29 @@ function FarmerFormPage() {
       return
     }
 
-    navigate("/farm", { state: { farmer: values, farmerPhoto: photo } })
+    const formData = new FormData()
+    for (const [name, value] of Object.entries(values)) {
+      if (value.trim()) formData.append(name, value.trim())
+    }
+    if (photo) formData.append("profile", photo)
+
+    setSubmitting(true)
+    try {
+      await submitFarmer(formData)
+      navigate("/farm", { replace: true })
+    } catch (error) {
+      const serverFields = error.response?.data?.data
+      if (serverFields && typeof serverFields === "object") {
+        setErrors((previous) => ({ ...previous, ...serverFields }))
+        setTouched((previous) => ({
+          ...previous,
+          ...Object.fromEntries(Object.keys(serverFields).map((name) => [name, true])),
+        }))
+      }
+      setSubmitError(error.response?.data?.message || "Could not save your farmer profile. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   /* ---------- Form ---------- */
@@ -636,10 +663,11 @@ function FarmerFormPage() {
             )}
           </div>
 
+          {submitError && <p className="ff-banner" role="alert">{submitError}</p>}
           <div className="ff-actions">
             <p className="ff-fineprint">You can submit your profile after adding your farm details.</p>
-            <button type="submit" className="ff-btn ff-btn-primary">
-              Proceed to farm
+            <button type="submit" className="ff-btn ff-btn-primary" disabled={submitting}>
+              {submitting ? "Saving..." : "Proceed to farm"}
             </button>
           </div>
         </form>

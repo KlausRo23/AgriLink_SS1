@@ -497,6 +497,63 @@
   color: #a24d43;
 }
 
+.settings-logout-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(20 30 22 / 55%);
+}
+
+.settings-logout-modal {
+  width: min(100%, 410px);
+  padding: 26px;
+  border: 1px solid #e4e8df;
+  border-radius: 14px;
+  background: #fff;
+  color: #26342b;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 22%);
+}
+
+.settings-logout-modal-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1ef;
+  color: #a24d43;
+}
+
+.settings-logout-modal h2 {
+  margin: 16px 0 6px;
+  font-size: 1.05rem;
+}
+
+.settings-logout-modal > p {
+  margin: 0;
+  color: #737d70;
+  font-size: 0.78rem;
+}
+
+.settings-logout-modal > .settings-form-error {
+  margin-top: 12px;
+}
+
+.settings-logout-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 23px;
+}
+
+.settings-logout-modal-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .settings-farm-meta {
   overflow: hidden;
   padding: 0 0 21px;
@@ -915,6 +972,7 @@ html[data-appearance="dark"] .settings-font-options,
 html[data-appearance="dark"] .settings-font-options button.is-selected,
 html[data-appearance="dark"] .settings-outline-button,
 html[data-appearance="dark"] .settings-logout-button,
+html[data-appearance="dark"] .settings-logout-modal,
 html[data-appearance="dark"] .settings-cancel-button,
 html[data-appearance="dark"] .settings-delivery-option,
 html[data-appearance="dark"] .settings-crop-options label,
@@ -924,6 +982,10 @@ html[data-appearance="dark"] .settings-document-row > button {
   border-color: #435347;
   background-color: #243128;
   color: #d7e0d4;
+}
+
+html[data-appearance="dark"] .settings-logout-modal > p {
+  color: #aab6a7;
 }
 
 html[data-appearance="dark"] .settings-delivery-option.is-selected,

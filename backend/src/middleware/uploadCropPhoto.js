@@ -6,7 +6,7 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"]
 const upload = multer({
     storage: multer.memoryStorage(), // nothing touches disk until the image is verified
     limits: {
-        fileSize: 3 * 1024 * 1024, // 3MB
+        fileSize: 20 * 1024 * 1024, // Larger camera photos are resized after upload.
         files: 1,
         fields: 20,
         fieldSize: 10 * 1024 // 10KB per text field
@@ -21,7 +21,7 @@ const upload = multer({
 }).single("image") // form-data field name the frontend must use
 
 const MULTER_MESSAGES = {
-    LIMIT_FILE_SIZE: "Image must be 3MB or smaller",
+    LIMIT_FILE_SIZE: "Image must be 20MB or smaller",
     LIMIT_FILE_COUNT: "Only one image is allowed",
     LIMIT_UNEXPECTED_FILE: 'Image must be sent in the "image" field'
 }

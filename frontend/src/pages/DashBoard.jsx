@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
   BarChart3,
-  Bell,
-  CheckCircle2,
-  CircleAlert,
   Clock3,
   CircleUserRound,
   Inbox,
@@ -16,38 +12,19 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import GenerateReportModal from "../component/modal/GenerateReportModal"
+import { getDashboard } from "../api/api"
 import { formatDeliveryModes } from "../data/deliveryModes"
-import { loadCropPreview } from "../data/crops"
-import { loadInboxThreads } from "../data/inbox"
-import { loadInventoryPreview } from "../data/inventory"
 import { getCropLifecycleStatus } from "../utils/cropLifecycle"
 import "../styles/dashboard.css"
 
-const SETTINGS_KEY = "agrilink-settings-preview"
-const DEFAULT_PROFILE = {
-  account: {
-    firstName: "Juan",
-    middleName: "Miguel",
-    lastName: "Dela Cruz",
-    suffix: "Jr",
-    age: "35",
-    region: "ncr",
-    bio: "",
-    mobileNumber: "09171234567",
-    email: "juandelacruz@gmail.com",
-    facebook: "",
-  },
-  farm: {
-    farmName: "Ungang Sakaghan",
-    location: "Quezon City, Metro Manila",
-    startedFarming: "2016",
-    description: "We grow fresh vegetables for our local community.",
-    specialty: ["Cabbage", "Lettuce", "Corn"],
-    deliveryMode: ["3rd party service"],
-    deliverableRegions: ["ncr"],
-    naturallyGrown: true,
-  },
-}
+const salesCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" })
+const compactSalesCurrency = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
 const REGION_LABELS = {
   ncr: "NCR (Metro Manila)",
   car: "CAR (Cordillera)",
@@ -66,76 +43,6 @@ const REGION_LABELS = {
   soccsksargen: "SOCCSKSARGEN",
   caraga: "Caraga",
   barmm: "BARMM",
-}
-
-const STOCK_ITEMS = [
-  { name: "Cabbage", quantity: 82, unit: "heads", status: "healthy" },
-  { name: "Carrots", quantity: 34, unit: "kg", status: "low" },
-  { name: "Fertilizer", quantity: 58, unit: "bags", status: "healthy" },
-  { name: "Pesticide", quantity: 27, unit: "bottles", status: "low" },
-  { name: "Tomatoes", quantity: 68, unit: "kg", status: "healthy" },
-]
-
-const SALES_DATA = {
-  Monthly: {
-    amount: "₱24,860",
-    change: "+12.8%",
-    data: [25, 38, 31, 56, 44, 66, 52, 74, 62, 86, 74, 94],
-    labels: ["1", "3", "5", "7", "9", "11", "13", "15", "17", "19", "21", "23"],
-    caption: "Daily sales this month",
-  },
-  Quarterly: {
-    amount: "₱68,420",
-    change: "+8.4%",
-    data: [28, 42, 34, 52, 46, 60, 55, 74, 64, 82, 77, 95],
-    labels: ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12"],
-    caption: "Weekly sales this quarter",
-  },
-  Annual: {
-    amount: "₱248,600",
-    change: "+18.2%",
-    data: [30, 36, 44, 39, 54, 60, 52, 68, 64, 78, 88, 96],
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    caption: "Monthly sales this year",
-  },
-}
-
-const NOTIFICATIONS = [
-  { title: "Tomatoes are running low", detail: "Only 8 kg left in your inventory", time: "10 min ago", type: "warning" },
-  { title: "New order received", detail: "Maria Santos ordered 12 kg of carrots", time: "1 hour ago", type: "success" },
-  { title: "Listing needs attention", detail: "Your cabbage listing expires tomorrow", time: "3 hours ago", type: "info" },
-]
-
-const ORDERS = [
-  { id: "#AG-1048", buyer: "Maria Santos", items: "Carrots · 12 kg", date: "Friday, November 13, 2026", amount: "₱960", status: "Processing" },
-  { id: "#AG-1047", buyer: "Juan Dela Cruz", items: "Cabbage · 20 heads", date: "Sunday, November 15, 2026", amount: "₱1,500", status: "Ready for pickup" },
-  { id: "#AG-1046", buyer: "Ana Reyes", items: "Tomatoes · 8 kg", date: "Monday, November 16, 2026", amount: "₱640", status: "Completed" },
-]
-
-function loadFarmerProfile() {
-  try {
-    const saved = window.localStorage.getItem(SETTINGS_KEY)
-    if (!saved) return DEFAULT_PROFILE
-
-    const parsed = JSON.parse(saved)
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("Stored settings must be an object.")
-    }
-
-    const account = parsed.account && typeof parsed.account === "object" && !Array.isArray(parsed.account)
-      ? parsed.account
-      : {}
-    const farm = parsed.farm && typeof parsed.farm === "object" && !Array.isArray(parsed.farm)
-      ? parsed.farm
-      : {}
-    return {
-      account: { ...DEFAULT_PROFILE.account, ...account },
-      farm: { ...DEFAULT_PROFILE.farm, ...farm },
-    }
-  } catch (error) {
-    console.error("Could not load farmer profile preview:", error)
-    return DEFAULT_PROFILE
-  }
 }
 
 function getDisplayName(account) {
@@ -216,9 +123,8 @@ function DashboardModal({ title, description, onClose, children, className = "" 
   )
 }
 
-function StockChart() {
-  const max = 100
-
+function StockChart({ items }) {
+  const max = Math.max(...items.map((item) => item.quantity), 1)
   return (
     <div className="stock-chart" role="img" aria-label="Current stock levels by item">
       <div className="stock-y-axis" aria-hidden="true">
@@ -229,11 +135,11 @@ function StockChart() {
           <span /><span /><span /><span /><span />
         </div>
         <div className="stock-bars">
-          {STOCK_ITEMS.map((item) => (
-            <div className="stock-bar-column" key={item.name}>
+          {items.map((item) => (
+            <div className="stock-bar-column" key={item.id}>
               <span className="stock-bar-value">{item.quantity}</span>
-              <div className={`stock-bar ${item.status}`} style={{ height: `${(item.quantity / max) * 100}%` }} />
-              <span className="stock-bar-label">{item.name}</span>
+              <div className={`stock-bar ${item.status}`} style={{ height: `${Math.max(4, (item.quantity / max) * 100)}%` }} />
+              <span className="stock-bar-label">{item.name} ({item.unit})</span>
             </div>
           ))}
         </div>
@@ -242,79 +148,96 @@ function StockChart() {
   )
 }
 
-function SalesChart({ data, labels, caption }) {
-  const chart = useMemo(() => {
-    const width = 560
-    const height = 190
-    const padX = 12
-    const padY = 16
-    const points = data.map((value, index) => {
-      const x = padX + (index * (width - padX * 2)) / (data.length - 1)
-      const y = height - padY - (value / 100) * (height - padY * 2)
-      return { x, y }
-    })
-    const line = points.map(({ x, y }) => `${x},${y}`).join(" ")
-    const area = `${padX},${height - padY} ${line} ${width - padX},${height - padY}`
-    return { points, line, area, width, height }
-  }, [data])
+function SalesLineChart({ months }) {
+  const width = 600
+  const height = 190
+  const left = 64
+  const right = 590
+  const top = 12
+  const bottom = 150
+  const max = Math.max(...months.map((month) => month.total), 1)
+  const points = months.map((month, index) => ({
+    ...month,
+    x: left + (index * (right - left)) / (months.length - 1),
+    y: bottom - (month.total / max) * (bottom - top),
+  }))
+  const line = points.map(({ x, y }) => `${x},${y}`).join(" ")
 
   return (
     <div className="sales-chart-wrap">
-      <svg className="sales-chart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={caption} preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sales-area-fill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#64814b" stopOpacity=".22" />
-            <stop offset="100%" stopColor="#64814b" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3].map((line) => {
-          const y = 16 + (line * (chart.height - 32)) / 3
-          return <line key={line} x1="12" x2={chart.width - 12} y1={y} y2={y} className="sales-grid-line" />
+      <svg className="sales-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Monthly completed order sales: ${months.map(({ label, total }) => `${label} ${salesCurrency.format(total)}`).join(", ")}`}>
+        {[0, 1, 2, 3].map((step) => {
+          const value = (max / 3) * step
+          const y = bottom - (value / max) * (bottom - top)
+          return (
+            <g key={step}>
+              <line className="sales-grid-line" x1={left} x2={right} y1={y} y2={y} />
+              <text className="sales-y-axis-label" x={left - 8} y={y + 4} textAnchor="end">{compactSalesCurrency.format(value)}</text>
+            </g>
+          )
         })}
-        <polygon points={chart.area} fill="url(#sales-area-fill)" />
-        <polyline points={chart.line} className="sales-line" />
-        {chart.points.map(({ x, y }, index) => (
-          <circle key={index} cx={x} cy={y} r={index === chart.points.length - 1 ? 5 : 3} className="sales-point">
-            <title>{labels[index]}: {data[index]}</title>
-          </circle>
-        ))}
+        <polyline className="sales-line" points={line} />
+        {points.map(({ key, x, y }) => <circle className="sales-point" key={key} cx={x} cy={y} r={4} />)}
       </svg>
       <div className="sales-x-axis" aria-hidden="true">
-        {labels.filter((_, index) => index % 2 === 0).map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+        {months.map(({ key, label }) => <span key={key}>{label}</span>)}
       </div>
-      <p className="chart-caption">{caption}</p>
     </div>
   )
 }
 
 function Dashboard() {
-  const [salesPeriod, setSalesPeriod] = useState("Monthly")
   const [reportOpen, setReportOpen] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
   const [profileTab, setProfileTab] = useState("account")
-  const [readNotifications, setReadNotifications] = useState([])
-  const [profile] = useState(() => loadFarmerProfile())
-  const [inventory] = useState(loadInventoryPreview)
-  const [crops] = useState(loadCropPreview)
-  const [threads] = useState(loadInboxThreads)
-  const displayName = getDisplayName(profile.account)
-  const unreadCount = NOTIFICATIONS.length - readNotifications.length
-  const sales = SALES_DATA[salesPeriod]
-  const freshness = {
-    fresh: inventory.filter((item) => item.status === "fresh").length,
-    nearSpoiling: inventory.filter((item) => item.status === "near-spoiling").length,
-    spoiled: inventory.filter((item) => item.status === "spoiled").length,
-  }
-  const inventoryCount = freshness.fresh + freshness.nearSpoiling + freshness.spoiled
+  const [dashboard, setDashboard] = useState(null)
+  const [salesData, setSalesData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setLoadError("")
+    try {
+      const { data } = await getDashboard()
+      setDashboard(data.data)
+      setSalesData(data.data.sales || null)
+    } catch (error) {
+      setLoadError(error.response?.data?.message || "Could not load your dashboard.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadDashboard()
+    })
+    return () => {
+      active = false
+    }
+  }, [loadDashboard])
+
+  const profile = dashboard?.profile || { account: {}, farm: null }
+  const account = profile.account
+  const farm = profile.farm
+  const displayName = getDisplayName(account)
+  const summary = dashboard?.summary
+  const freshness = summary?.freshness || { fresh: 0, nearSpoiling: 0, spoiled: 0 }
+  const inventoryCount = summary?.inventoryCount || 0
+  const stocks = dashboard?.stocks || []
+  const recentListings = dashboard?.recentListings || []
+  const listings = summary?.listings || { pending: 0, approved: 0, rejected: 0, returned: 0 }
   const freshEnd = inventoryCount ? (freshness.fresh / inventoryCount) * 100 : 0
   const nearEnd = inventoryCount ? ((freshness.fresh + freshness.nearSpoiling) / inventoryCount) * 100 : 0
   const attentionCounts = {
     spoiled: freshness.spoiled,
     nearSpoiling: freshness.nearSpoiling,
-    growing: crops.filter((crop) => getCropLifecycleStatus(crop) === "growing").length,
-    requests: threads.filter((thread) => thread.status === "pending" && !thread.archived).length,
+    growing: summary?.growingCrops || 0,
+    requests: listings.pending,
   }
-  const upcomingHarvests = crops
+  const upcomingHarvests = (dashboard?.upcomingHarvests || [])
     .map((crop) => {
       const daysUntilHarvest = getDaysUntilHarvest(crop.harvestDate)
       return {
@@ -338,21 +261,21 @@ function Dashboard() {
     year: "numeric",
   }).format(new Date())
   const reportData = {
-    farmName: profile.farm.farmName,
+    farmName: farm?.farmName,
     farmerName: displayName,
     reportDate,
-    period: salesPeriod === "Monthly" ? "This month" : salesPeriod === "Quarterly" ? "This quarter" : "This year",
+    period: "Current snapshot",
     attention: [
       { label: "Spoiled items", value: attentionCounts.spoiled, note: "In inventory" },
       { label: "Near spoiling", value: attentionCounts.nearSpoiling, note: "Check freshness" },
       { label: "Growing crops", value: attentionCounts.growing, note: "Active crops" },
-      { label: "Inbox requests", value: attentionCounts.requests, note: "Awaiting response" },
+      { label: "Listings pending review", value: attentionCounts.requests, note: "Awaiting review" },
     ],
-    stocks: STOCK_ITEMS,
-    sales,
+    stocks,
     freshness,
     upcomingHarvests,
-    orders: ORDERS,
+    listings,
+    recentListings,
   }
 
   return (
@@ -360,17 +283,6 @@ function Dashboard() {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-breadcrumb">Dashboard</div>
-          <button
-            type="button"
-            className="dashboard-icon-button notification-button"
-            aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
-            aria-haspopup="dialog"
-            aria-expanded={activeModal === "notifications"}
-            onClick={() => setActiveModal("notifications")}
-          >
-            <Bell size={19} aria-hidden="true" />
-            {unreadCount > 0 && <span />}
-          </button>
           <button
             type="button"
             className="dashboard-avatar"
@@ -387,11 +299,20 @@ function Dashboard() {
         </header>
 
         <div className="dashboard-content">
+          {loading && <p className="dashboard-empty-message" role="status">Loading your farm dashboard...</p>}
+          {loadError && (
+            <div className="dashboard-empty-message" role="alert">
+              <p>{loadError}</p>
+              <button type="button" className="text-action" onClick={loadDashboard}>Try again</button>
+            </div>
+          )}
+          {!loading && dashboard && (
+            <>
           <section className="dashboard-welcome">
             <div>
               <p className="dashboard-eyebrow">{currentDate}</p>
-              <h1 className="dashboard-page-title">Good morning, Farmer!</h1>
-              <p>Here’s what’s happening with your farm today.</p>
+              <h1 className="dashboard-page-title">Welcome, {displayName || "Farmer"}!</h1>
+              <p>{farm?.farmName ? `Here’s what’s happening at ${farm.farmName} today.` : "Here’s what’s happening with your farm today."}</p>
             </div>
             <button type="button" className="dashboard-report-button" onClick={() => setReportOpen(true)}>
               <BarChart3 size={17} aria-hidden="true" />
@@ -419,7 +340,7 @@ function Dashboard() {
               </article>
               <article className="summary-card">
                 <span className="summary-icon blue"><Inbox size={18} aria-hidden="true" /></span>
-                <span>Inbox requests</span><strong>{attentionCounts.requests}</strong><small>Awaiting response</small>
+                <span>Listings pending</span><strong>{attentionCounts.requests}</strong><small>Awaiting review</small>
               </article>
             </div>
           </section>
@@ -433,36 +354,35 @@ function Dashboard() {
                 </div>
                 <span className="chart-legend"><i className="legend-dot healthy" /> In stock <i className="legend-dot low" /> Low stock</span>
               </div>
-              <StockChart />
+              {stocks.length ? <StockChart items={stocks} /> : <p className="dashboard-empty-message">No inventory items have been added.</p>}
             </article>
 
             <article className="dashboard-card chart-card">
               <div className="dashboard-card-heading sales-heading">
                 <div>
-                  <h2>Sales overview</h2>
-                  <p>{SALES_DATA[salesPeriod].caption}</p>
+                  <h2>Overall sales</h2>
+                  <p>Completed order revenue by month</p>
                 </div>
-                <div className="period-tabs" role="group" aria-label="Sales chart period">
-                  {Object.keys(SALES_DATA).map((period) => (
-                    <button
-                      type="button"
-                      key={period}
-                      aria-pressed={salesPeriod === period}
-                      className={salesPeriod === period ? "is-selected" : ""}
-                      onClick={() => setSalesPeriod(period)}
-                    >
-                      {period}
-                    </button>
-                  ))}
-                </div>
+                <Link className="text-action" to="/inbox">View inbox <ArrowRight size={14} aria-hidden="true" /></Link>
               </div>
               <div className="sales-total-row">
-                <strong>{sales.amount}</strong>
-                <span><ArrowUpRight size={15} aria-hidden="true" /> {sales.change}</span>
-                <small>vs previous {salesPeriod.toLowerCase().replace(/ly$/, "")}</small>
+                <strong>{salesData ? salesCurrency.format(salesData.total) : "Unavailable"}</strong>
+                <small>{salesData ? "Lifetime sales from delivered orders" : "Could not read completed orders from this browser."}</small>
               </div>
-              <SalesChart data={sales.data} labels={sales.labels} caption={sales.caption} />
+              {salesData && <SalesLineChart months={salesData.months} />}
             </article>
+          </section>
+
+          <section className="dashboard-card dashboard-listing-overview">
+            <div className="dashboard-card-heading">
+              <div><h2>Listing overview</h2><p>Your product submissions by status</p></div>
+            </div>
+            <div className="dashboard-summary-grid" aria-label="Listing counts">
+              <article className="summary-card"><span>Pending</span><strong>{listings.pending}</strong><small>Awaiting review</small></article>
+              <article className="summary-card"><span>Approved</span><strong>{listings.approved}</strong><small>Active listings</small></article>
+              <article className="summary-card"><span>Returned</span><strong>{listings.returned}</strong><small>Needs updates</small></article>
+              <article className="summary-card"><span>Rejected</span><strong>{listings.rejected}</strong><small>Not approved</small></article>
+            </div>
           </section>
 
           <section className="dashboard-lower-grid dashboard-insights-grid" aria-label="Freshness and upcoming harvests">
@@ -528,79 +448,39 @@ function Dashboard() {
 
           <section className="dashboard-card orders-card">
             <div className="dashboard-card-heading">
-              <div><h2>Order Activity</h2><p>Track the latest customer orders</p></div>
-              <button type="button" className="text-action">View inbox <ArrowRight size={14} /></button>
+              <div><h2>Recent listings</h2><p>Track the latest product submissions</p></div>
+              <Link to="/listings" className="text-action">View listings <ArrowRight size={14} /></Link>
             </div>
-            <div className="orders-table-wrap">
+            {recentListings.length ? <div className="orders-table-wrap">
               <table className="orders-table">
                 <thead>
-                  <tr><th>Order</th><th>Buyer</th><th>Items</th><th>Date</th><th>Order Status</th><th className="align-right">Total</th></tr>
+                  <tr><th>Product</th><th>Quantity</th><th>Price</th><th>Date submitted</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                  {ORDERS.map((order) => (
-                    <tr key={order.id}>
-                      <td className="order-id">{order.id}</td>
-                      <td>{order.buyer}</td>
-                      <td>{order.items}</td>
-                      <td className="order-date">{order.date}</td>
-                      <td><span className={`order-status ${order.status === "Completed" ? "complete" : "pending"}`}>{order.status}</span></td>
-                      <td className="order-total">{order.amount}</td>
+                  {recentListings.map((listing) => (
+                    <tr key={listing.id}>
+                      <td className="order-id">{listing.name}</td>
+                      <td>{listing.stock} {listing.unit}</td>
+                      <td>{new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(listing.price)}</td>
+                      <td className="order-date">{new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(new Date(listing.createdAt))}</td>
+                      <td><span className={`order-status ${listing.status === "approved" ? "complete" : "pending"}`}>{listing.status}</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div> : <p className="dashboard-empty-message">You have not submitted any listings yet.</p>}
           </section>
 
-          <p className="dashboard-demo-note"><Leaf size={14} aria-hidden="true" /> Dashboard preview with sample data</p>
+          <p className="dashboard-demo-note"><Leaf size={14} aria-hidden="true" /> Dashboard information is synced with your AgriLink account.</p>
+            </>
+          )}
       </div>
       </main>
       {reportOpen && <GenerateReportModal open onClose={() => setReportOpen(false)} reportData={reportData} />}
-      {activeModal === "notifications" && (
-        <DashboardModal
-          title="Notifications"
-          description="The latest updates from your farm."
-          onClose={() => setActiveModal(null)}
-          className="notification-modal"
-        >
-          <div className="dashboard-modal-content">
-            <div className="dashboard-modal-section-heading">
-              <span>{unreadCount ? `${unreadCount} unread` : "You’re all caught up"}</span>
-              {unreadCount > 0 && (
-                <button type="button" className="text-action" onClick={() => setReadNotifications(NOTIFICATIONS.map((item) => item.title))}>
-                  Mark all as read
-                </button>
-              )}
-            </div>
-            <div className="notification-modal-list">
-              {NOTIFICATIONS.map((notification) => {
-                const Icon = notification.type === "warning" ? AlertTriangle : notification.type === "success" ? CheckCircle2 : CircleAlert
-                const isRead = readNotifications.includes(notification.title)
-                return (
-                  <button
-                    type="button"
-                    className={`notification-modal-item ${notification.type}${isRead ? " is-read" : ""}`}
-                    key={notification.title}
-                    onClick={() => setReadNotifications((current) => current.includes(notification.title) ? current : [...current, notification.title])}
-                  >
-                    <span className="notification-icon"><Icon size={18} aria-hidden="true" /></span>
-                    <span className="notification-modal-copy">
-                      <strong>{notification.title}</strong>
-                      <span>{notification.detail}</span>
-                      <time>{notification.time}</time>
-                    </span>
-                    {!isRead && <span className="notification-unread-dot" aria-label="Unread" />}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </DashboardModal>
-      )}
       {activeModal === "profile" && (
         <DashboardModal
           title="Farmer profile"
-          description="Your account and farm details from Settings."
+          description="Your farmer and farm profile from AgriLink."
           onClose={() => setActiveModal(null)}
           className="profile-modal"
         >
@@ -608,7 +488,7 @@ function Dashboard() {
             <span className="dashboard-profile-avatar"><CircleUserRound size={38} aria-hidden="true" /></span>
             <div>
               <h3>{displayName || "Farmer"}</h3>
-              <p>{typeof profile.account.email === "string" ? profile.account.email || "No email provided" : "No email provided"}</p>
+              <p>{account.email || "No email provided"}</p>
             </div>
           </div>
           <div className="dashboard-profile-tabs" role="tablist" aria-label="Profile details">
@@ -622,23 +502,22 @@ function Dashboard() {
           <div className="dashboard-modal-content dashboard-profile-content" id="dashboard-profile-panel" role="tabpanel" aria-labelledby={`dashboard-profile-tab-${profileTab}`}>
             {profileTab === "account" ? (
               <dl className="dashboard-profile-fields">
-                <ProfileField label="Age" value={typeof profile.account.age === "string" || typeof profile.account.age === "number" ? profile.account.age ? `${profile.account.age} years old` : "" : ""} />
-                <ProfileField label="Region where you farm" value={typeof profile.account.region === "string" ? REGION_LABELS[profile.account.region] || profile.account.region : ""} />
-                <ProfileField label="Mobile number" value={profile.account.mobileNumber} />
-                <ProfileField label="Email" value={profile.account.email} />
-                <ProfileField label="Facebook profile or page" value={profile.account.facebook} className="is-wide" />
-                <ProfileField label="About me" value={profile.account.bio} className="is-wide" />
+                <ProfileField label="Age" value={account.age ? `${account.age} years old` : ""} />
+                <ProfileField label="Region where you farm" value={REGION_LABELS[account.region] || account.region} />
+                <ProfileField label="Mobile number" value={account.mobileNumber} />
+                <ProfileField label="Email" value={account.email} />
+                <ProfileField label="Facebook profile or page" value={account.facebook} className="is-wide" />
+                <ProfileField label="About me" value={account.bio} className="is-wide" />
               </dl>
             ) : (
               <dl className="dashboard-profile-fields">
-                <ProfileField label="Farm name" value={profile.farm.farmName} />
-                <ProfileField label="Farm location" value={profile.farm.location} />
-                <ProfileField label="About this farm" value={profile.farm.description} className="is-wide" />
-                <ProfileField label="Farming since" value={profile.farm.startedFarming} />
-                <ProfileField label="Crops and specialties" value={Array.isArray(profile.farm.specialty) ? profile.farm.specialty.filter((crop) => typeof crop === "string").join(", ") : ""} className="is-wide" />
-                <ProfileField label="Delivery methods" value={formatDeliveryModes(profile.farm.deliveryMode)} />
-                <ProfileField label="Delivery regions" value={Array.isArray(profile.farm.deliverableRegions) ? profile.farm.deliverableRegions.filter((region) => typeof region === "string").map((region) => REGION_LABELS[region] || region).join(", ") : ""} />
-                <ProfileField label="Farming practice" value={profile.farm.naturallyGrown === true ? "Naturally grown" : "Not marked as naturally grown"} />
+                <ProfileField label="Farm name" value={farm?.farmName} />
+                <ProfileField label="Farm location" value={farm?.location} />
+                <ProfileField label="About this farm" value={farm?.description} className="is-wide" />
+                <ProfileField label="Farming since" value={farm?.startedFarming} />
+                <ProfileField label="Crops and specialties" value={Array.isArray(farm?.specialty) ? farm.specialty.join(", ") : ""} className="is-wide" />
+                <ProfileField label="Delivery methods" value={formatDeliveryModes(farm?.deliveryMode)} />
+                <ProfileField label="Delivery regions" value={Array.isArray(farm?.deliverableRegions) ? farm.deliverableRegions.map((region) => REGION_LABELS[region] || region).join(", ") : ""} />
               </dl>
             )}
           </div>

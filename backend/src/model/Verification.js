@@ -3,6 +3,14 @@ import mongoose from "mongoose"
 
 //This is for verification of Farmer
 const verificationSchema = new mongoose.Schema({
+	ssoUserId: {
+		type: String,
+		required: true,
+		unique: true,
+		sparse: true,
+		index: true,
+		immutable: true
+	},
 lastName: {
 	type: String, 
 	required: true, 
@@ -32,7 +40,8 @@ suffix: {
 Age: {
 	type: Number, 
 	required: true, 
-	maxLength: 2,
+	min: 18,
+	max: 99,
 },
 rsbsaRegistration: {
     type: String,

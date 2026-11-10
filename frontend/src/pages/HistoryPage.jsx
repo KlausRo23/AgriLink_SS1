@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react"
-import { Archive, Box, Grid2X2, Leaf, Pencil, Plus, RotateCcw, Search, Sprout, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Archive, Box, Grid2X2, Pencil, Plus, RotateCcw, Search, Sprout, Trash2 } from "lucide-react"
+import { getHistory } from "../api/api"
 import HistoryCard from "../component/card/HistoryCard"
 import ArchiveModal from "../component/modal/ArchiveModal"
 import "../styles/history.css"
@@ -14,41 +15,57 @@ const ACTION_FILTERS = [
   { value: "harvested", label: "Harvested", Icon: Sprout },
 ]
 
-const SAVED_CROPS_KEY = "agrilink-crops-preview"
-
-const INITIAL_HISTORY = [
-  { id: "history-1", action: "harvested", name: "Tomato", itemType: "Crop", detail: "120 kg harvested", createdAt: "2026-10-26T09:12:00" },
-  { id: "history-2", action: "restored", name: "Rice", itemType: "Crop", detail: "Returned from archive", createdAt: "2026-09-24T17:07:00" },
-  { id: "history-3", action: "added", name: "Soil Amendments", itemType: "Supply", detail: "3 sacks added", createdAt: "2026-09-24T17:06:00" },
-  { id: "history-4", action: "added", name: "Tomato", itemType: "Crop", detail: "120 seedlings", createdAt: "2026-09-24T17:05:00" },
-  { id: "history-5", action: "added", name: "Seeds", itemType: "Supply", detail: "10 packs added", createdAt: "2026-09-24T16:44:00" },
-  { id: "history-6", action: "edited", name: "Herbicide", itemType: "Supply", detail: "Quantity updated", createdAt: "2026-09-24T16:44:00" },
-  { id: "history-7", action: "added", name: "Rice", itemType: "Crop", detail: "80 seedlings", createdAt: "2026-09-24T16:42:00" },
-  { id: "history-8", action: "added", name: "Fertilizer", itemType: "Supply", detail: "5 sacks added", createdAt: "2026-09-24T16:41:00" },
-  { id: "history-9", action: "added", name: "Grain sacks", itemType: "Supply", detail: "25 pieces added", createdAt: "2026-09-24T16:40:00" },
-  { id: "history-10", action: "archived", name: "Rice", itemType: "Crop", detail: "Archived by you", createdAt: "2026-09-24T16:38:00" },
-  { id: "history-11", action: "deleted", name: "Old fertilizer", itemType: "Supply", detail: "Permanently removed", createdAt: "2026-09-22T11:24:00" },
-]
-
-function loadArchivedCrops() {
-  try {
-    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
-    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
-    return savedCrops.filter((crop) => crop?.archived === true && crop.deleted !== true)
-  } catch (error) {
-    console.error("Could not load archived crops:", error)
-    return []
-  }
+async function fetchHistoryPage(page) {
+  const { data } = await getHistory({ page, limit: 50 })
+  const result = data?.data
+  if (!Array.isArray(result?.entries)) throw new Error("The history response was invalid.")
+  return result
 }
 
 function HistoryPage() {
-  const [history] = useState(INITIAL_HISTORY)
-  const [archivedCrops, setArchivedCrops] = useState(loadArchivedCrops)
+  const [history, setHistory] = useState([])
+  const [pagination, setPagination] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
   const [actionFilter, setActionFilter] = useState("all")
   const [itemType, setItemType] = useState("all")
   const [sortOrder, setSortOrder] = useState("newest")
   const [search, setSearch] = useState("")
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
+
+  const loadHistory = useCallback(async (page = 1, append = false) => {
+    setIsLoading(true)
+    setError("")
+    try {
+      const result = await fetchHistoryPage(page)
+      setHistory((current) => append ? [...current, ...result.entries] : result.entries)
+      setPagination(result.pagination)
+    } catch (requestError) {
+      console.error("Could not load history:", requestError)
+      setError(requestError.response?.data?.message || requestError.message || "Could not load history.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    fetchHistoryPage(1)
+      .then((result) => {
+        if (!active) return
+        setHistory(result.entries)
+        setPagination(result.pagination)
+        setError("")
+      })
+      .catch((requestError) => {
+        console.error("Could not load history:", requestError)
+        if (active) setError(requestError.response?.data?.message || requestError.message || "Could not load history.")
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+    return () => { active = false }
+  }, [])
 
   const filteredHistory = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -60,28 +77,6 @@ function HistoryPage() {
         ? new Date(b.createdAt) - new Date(a.createdAt)
         : new Date(a.createdAt) - new Date(b.createdAt))
   }, [actionFilter, history, itemType, search, sortOrder])
-
-  function restoreArchivedCrop(item) {
-    if (!item.isPersistedCrop) return
-    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
-    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
-    const crop = savedCrops.find((entry) => entry.id === item.id && entry.archived === true)
-    if (!crop) throw new Error("This crop is no longer archived. Refresh and try again.")
-    const restoredCrop = { ...crop, archived: false }
-    delete restoredCrop.archivedAt
-    window.localStorage.setItem(SAVED_CROPS_KEY, JSON.stringify(savedCrops.map((entry) => entry.id === item.id ? restoredCrop : entry)))
-    setArchivedCrops((current) => current.filter((entry) => entry.id !== item.id))
-  }
-
-  function deleteArchivedCrop(item) {
-    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
-    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
-    const crop = savedCrops.find((entry) => entry.id === item.id && entry.archived === true)
-    if (!crop) throw new Error("This crop is no longer archived. Refresh and try again.")
-    const deletedCrop = { id: crop.id, name: crop.name, deleted: true, deletedAt: new Date().toISOString() }
-    window.localStorage.setItem(SAVED_CROPS_KEY, JSON.stringify(savedCrops.map((entry) => entry.id === item.id ? deletedCrop : entry)))
-    setArchivedCrops((current) => current.filter((entry) => entry.id !== item.id))
-  }
 
   return (
     <main className="dashboard-main history-page">
@@ -130,6 +125,7 @@ function HistoryPage() {
                 <option value="all">All types</option>
                 <option value="crop">Crops</option>
                 <option value="supply">Supplies</option>
+                <option value="listing">Listings</option>
               </select>
             </label>
             <label className="history-select-wrap">
@@ -143,24 +139,41 @@ function HistoryPage() {
           </div>
         </section>
 
-        <section className="history-list" aria-label="History entries">
-          {filteredHistory.length > 0 ? filteredHistory.map((entry) => <HistoryCard key={entry.id} entry={entry} />) : (
+        {error && <p className="history-preview-note" role="alert">{error}</p>}
+        <section className="history-list" aria-label="History entries" aria-busy={isLoading}>
+          {isLoading && history.length === 0 ? (
+            <p className="history-preview-note" role="status">Loading farm history…</p>
+          ) : error && history.length === 0 ? (
             <div className="history-empty">
               <span><Box size={20} aria-hidden="true" /></span>
-              <h2>No history found</h2>
-              <p>Try adjusting the action, item type, or search filters.</p>
-              <button type="button" onClick={() => { setActionFilter("all"); setItemType("all"); setSearch("") }}>Clear filters</button>
+              <h2>History unavailable</h2>
+              <p>{error}</p>
+              <button type="button" onClick={() => loadHistory()}>Try again</button>
+            </div>
+          ) : filteredHistory.length > 0 ? filteredHistory.map((entry) => <HistoryCard key={entry.id} entry={entry} />) : (
+            <div className="history-empty">
+              <span><Box size={20} aria-hidden="true" /></span>
+              <h2>{history.length ? "No history found" : "No farm activity yet"}</h2>
+              <p>{history.length ? "Try adjusting the action, item type, or search filters." : "Changes to your crops and inventory will appear here."}</p>
+              {history.length > 0 && <button type="button" onClick={() => { setActionFilter("all"); setItemType("all"); setSearch("") }}>Clear filters</button>}
             </div>
           )}
         </section>
-        <p className="history-preview-note"><Leaf size={13} aria-hidden="true" /> Preview activity only. Live history is not connected yet.</p>
+        {pagination && pagination.page < pagination.totalPages && (
+          <button
+            type="button"
+            className="history-load-more"
+            disabled={isLoading}
+            onClick={() => loadHistory(pagination.page + 1, true)}
+          >
+            {isLoading ? "Loading…" : "Load more"}
+          </button>
+        )}
       </div>
       <ArchiveModal
         isOpen={isArchiveOpen}
         onClose={() => setIsArchiveOpen(false)}
-        onRestore={restoreArchivedCrop}
-        onDelete={deleteArchivedCrop}
-        archivedCrops={archivedCrops}
+        onChanged={() => loadHistory()}
       />
     </main>
   )

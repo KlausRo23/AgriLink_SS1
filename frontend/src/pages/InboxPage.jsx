@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Archive, ArrowLeft, Building2, CalendarDays, Check, Inbox, MapPin, MessageCircle,
   MoreVertical, PackageCheck, Search, Send, ShieldCheck, UserRound, X,
 } from "lucide-react"
 import { useLocation } from "react-router-dom"
+import {
+  getInboxConversations,
+  respondToInboxRequest,
+  sendInboxMessage,
+  setInboxArchived,
+  updateInboxOrderStatus,
+} from "../api/api"
 import ConversationCard from "../component/card/ConversationCard"
 import MessageCard from "../component/card/MessageCard"
-import { loadInboxThreads, saveInboxThreads } from "../data/inbox"
 import "../styles/inbox.css"
 
 const money = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 })
@@ -54,8 +60,11 @@ function matchesInboxFilter(thread, filter) {
 
 function InboxPage() {
   const location = useLocation()
-  const [threads, setThreads] = useState(loadInboxThreads)
-  const [selectedId, setSelectedId] = useState(() => location.state?.threadId || "request-rihay")
+  const [threads, setThreads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [selectedId, setSelectedId] = useState(() => location.state?.threadId || null)
   const [filter, setFilter] = useState("all")
   const [search, setSearch] = useState("")
   const [draft, setDraft] = useState("")
@@ -64,14 +73,39 @@ function InboxPage() {
   const [orderDetailsDialogOpen, setOrderDetailsDialogOpen] = useState(false)
   const [pendingOrderStatus, setPendingOrderStatus] = useState(null)
   const [pendingRequestAction, setPendingRequestAction] = useState(null)
-  const [notice, setNotice] = useState(location.state?.saved === false
-    ? "This order request could not be saved in this browser. Check storage permissions."
-    : "")
+  const [notice, setNotice] = useState("")
   const selectedThread = threads.find((thread) => thread.id === selectedId)
   const pendingCount = threads.filter((thread) => thread.status === "pending" && !thread.archived).length
   const activeOrdersCount = threads.filter((thread) => matchesInboxFilter(thread, "active-orders")).length
   const deliveredCount = threads.filter((thread) => matchesInboxFilter(thread, "delivered")).length
   const archivedCount = threads.filter((thread) => thread.archived).length
+
+  const loadInbox = useCallback(async () => {
+    setLoading(true)
+    setLoadError("")
+    try {
+      const { data } = await getInboxConversations()
+      if (!Array.isArray(data?.data)) throw new Error("The inbox response has an invalid format.")
+      setThreads(data.data)
+      setSelectedId((current) => {
+        const preferred = current || location.state?.threadId
+        if (preferred && data.data.some((thread) => thread.id === preferred)) return preferred
+        return data.data[0]?.id || null
+      })
+    } catch (error) {
+      setLoadError(error.response?.data?.message || error.message || "Could not load your inbox.")
+    } finally {
+      setLoading(false)
+    }
+  }, [location.state?.threadId])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadInbox()
+    })
+    return () => { active = false }
+  }, [loadInbox])
 
   useEffect(() => {
     if (!buyerDialogOpen && !orderDetailsDialogOpen && !pendingOrderStatus && !pendingRequestAction) return undefined
@@ -95,11 +129,20 @@ function InboxPage() {
     })
   }, [filter, search, threads])
 
-  function updateThread(threadId, update) {
-    const updated = threads.map((thread) => thread.id === threadId ? update(thread) : thread)
-    setThreads(updated)
-    setNotice(saveInboxThreads(updated) ? "" : "Your inbox change could not be saved in this browser.")
-    return updated
+  async function mutateThread(request) {
+    setSaving(true)
+    setNotice("")
+    try {
+      const { data } = await request()
+      const updatedThread = data.data
+      setThreads((current) => current.map((thread) => thread.id === updatedThread.id ? updatedThread : thread))
+      return updatedThread
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not update this conversation.")
+      return null
+    } finally {
+      setSaving(false)
+    }
   }
 
   function setInboxFilter(nextFilter) {
@@ -109,16 +152,18 @@ function InboxPage() {
     setMobileDetailOpen(false)
   }
 
-  function archiveThread(threadId) {
-    updateThread(threadId, (thread) => ({ ...thread, archived: true }))
+  async function archiveThread(threadId) {
+    const updated = await mutateThread(() => setInboxArchived(threadId, true))
+    if (!updated) return
     if (selectedId === threadId) {
       setFilter("archive")
       setMobileDetailOpen(false)
     }
   }
 
-  function unarchiveThread(threadId) {
-    updateThread(threadId, (thread) => ({ ...thread, archived: false }))
+  async function unarchiveThread(threadId) {
+    const updated = await mutateThread(() => setInboxArchived(threadId, false))
+    if (!updated) return
     if (selectedId === threadId) {
       setFilter("all")
       setMobileDetailOpen(false)
@@ -133,7 +178,7 @@ function InboxPage() {
     }
   }
 
-  function confirmOrderStatusChange() {
+  async function confirmOrderStatusChange() {
     if (!pendingOrderStatus) return
     const { threadId, orderStatus } = pendingOrderStatus
     const thread = threads.find((item) => item.id === threadId)
@@ -142,73 +187,34 @@ function InboxPage() {
       setNotice("This order status could not be updated because the conversation is no longer active.")
       return
     }
-    updateThread(threadId, (current) => ({ ...current, orderStatus }))
     setPendingOrderStatus(null)
-    if (["delivered", "completed"].includes(orderStatus)) setFilter("delivered")
-    else if (filter === "delivered") setFilter("active-orders")
+    const updated = await mutateThread(() => updateInboxOrderStatus(threadId, orderStatus))
+    if (updated && ["delivered", "completed"].includes(orderStatus)) setFilter("delivered")
+    else if (updated && filter === "delivered") setFilter("active-orders")
   }
 
-  function confirmRequestAction() {
+  async function confirmRequestAction() {
     if (!pendingRequestAction || selectedThread?.id !== pendingRequestAction.threadId || selectedThread.status !== "pending") {
       setPendingRequestAction(null)
       setNotice("This order request could not be updated because it is no longer pending.")
       return
     }
-    const { action } = pendingRequestAction
+    const { threadId, action } = pendingRequestAction
     setPendingRequestAction(null)
-    if (action === "accept") acceptRequest()
-    else declineRequest()
+    const updated = await mutateThread(() => respondToInboxRequest(threadId, action))
+    if (updated && action === "accept") setFilter("active-orders")
+    if (updated && action === "reject") {
+      setFilter("archive")
+      setMobileDetailOpen(false)
+    }
   }
 
-  function acceptRequest() {
-    if (!selectedThread || selectedThread.status !== "pending") return
-    const time = new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit" }).format(new Date())
-    updateThread(selectedThread.id, (thread) => ({
-      ...thread,
-      status: "active",
-      orderStatus: "confirmed",
-      updatedAt: time,
-      messages: [{
-        id: `${thread.id}-accepted-${Date.now()}`,
-        sender: "system",
-        type: "system",
-        text: "Your order has been accepted by farmer.",
-        time,
-      }],
-    }))
-    setFilter("active-orders")
-  }
-
-  function declineRequest() {
-    if (!selectedThread || selectedThread.status !== "pending") return
-    const time = new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit" }).format(new Date())
-    updateThread(selectedThread.id, (thread) => ({
-      ...thread,
-      status: "declined",
-      archived: true,
-      updatedAt: time,
-      messages: [],
-    }))
-    setFilter("archive")
-    setMobileDetailOpen(false)
-  }
-
-  function sendMessage(event) {
+  async function sendMessage(event) {
     event.preventDefault()
     const text = draft.trim()
     if (!text || !selectedThread || selectedThread.status !== "active") return
-    const time = new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit" }).format(new Date())
-    updateThread(selectedThread.id, (thread) => ({
-      ...thread,
-      updatedAt: time,
-      messages: [...thread.messages, {
-        id: `${thread.id}-message-${Date.now()}`,
-        sender: "farmer",
-        text,
-        time,
-      }],
-    }))
-    setDraft("")
+    const updated = await mutateThread(() => sendInboxMessage(selectedThread.id, text))
+    if (updated) setDraft("")
   }
 
   function selectThread(threadId) {
@@ -236,7 +242,7 @@ function InboxPage() {
             <h1 className="dashboard-page-title">Messages</h1>
             <p>Questions and order requests from buyers, plus reminders from AgriLink.</p>
           </div>
-          <span className="inbox-preview-note"><ShieldCheck size={14} /> Local preview</span>
+          <span className="inbox-preview-note"><ShieldCheck size={14} /> Synced to your account</span>
         </header>
 
         <div className="inbox-workspace">
@@ -263,7 +269,9 @@ function InboxPage() {
               ))}
             </div>
             <div className="inbox-conversation-list">
-              {visibleThreads.length ? visibleThreads.map((thread) => (
+              {loading ? <div className="inbox-empty-list"><Inbox size={25} /><p>Loading conversations...</p></div>
+                : loadError ? <div className="inbox-empty-list" role="alert"><Inbox size={25} /><p>{loadError}</p><button type="button" onClick={loadInbox}>Try again</button></div>
+                  : visibleThreads.length ? visibleThreads.map((thread) => (
                 <ConversationCard
                   key={thread.id}
                   conversation={thread}
@@ -271,6 +279,7 @@ function InboxPage() {
                   onSelect={() => selectThread(thread.id)}
                   onArchive={() => archiveThread(thread.id)}
                   onUnarchive={() => unarchiveThread(thread.id)}
+                  disabled={saving}
                 />
               )) : (
                 <div className="inbox-empty-list"><Inbox size={25} /><p>No conversations found.</p></div>
@@ -285,7 +294,7 @@ function InboxPage() {
                   <button type="button" className="inbox-back-button" onClick={() => setMobileDetailOpen(false)} aria-label="Back to conversations">
                     <ArrowLeft size={18} />
                   </button>
-                  <span className="inbox-avatar" aria-hidden="true">{getInitials(selectedThread.buyer?.fullName || selectedThread.customerName)}</span>
+                  <span className="inbox-avatar" aria-hidden="true">{getInitials(selectedThread.isFarmer ? selectedThread.buyer?.fullName : selectedThread.customerName)}</span>
                   <div className="inbox-chat-identity">
                     <strong>{selectedThread.status === "active" ? selectedThread.customerName : "Order request"}</strong>
                     <span>{selectedThread.status === "active" ? "Conversation open" : selectedThread.status === "pending" ? "Review buyer and order details" : "Order request declined"}</span>
@@ -293,7 +302,7 @@ function InboxPage() {
                   <span className={`inbox-status-pill is-${selectedThread.archived ? "archived" : selectedThread.status}`}>
                     {selectedThread.archived ? "Archived" : selectedThread.status === "active" ? "Active chat" : selectedThread.status === "pending" ? "Needs response" : "Declined"}
                   </span>
-                  {selectedThread.status === "active" && (
+                  {selectedThread.status === "active" && selectedThread.isFarmer && (
                     <button
                       type="button"
                       className="inbox-order-details-button"
@@ -339,15 +348,17 @@ function InboxPage() {
                       <div className="inbox-request-total"><span>Order subtotal</span><strong>{money.format(selectedThread.subtotal ?? selectedThread.quantity * selectedThread.listingPrice)}</strong></div>
                     </section>
 
-                    {selectedThread.status === "pending" && !selectedThread.archived ? (
+                    {selectedThread.status === "pending" && !selectedThread.archived && selectedThread.isFarmer ? (
                       <div className="inbox-request-actions">
                         <p>Accept the order to open a conversation with this buyer.</p>
                         <div>
-                          <button type="button" className="inbox-decline-button" onClick={() => setPendingRequestAction({ threadId: selectedThread.id, action: "reject" })}><X size={15} /> Reject</button>
+                          <button type="button" className="inbox-decline-button" onClick={() => setPendingRequestAction({ threadId: selectedThread.id, action: "reject" })} disabled={saving}><X size={15} /> Reject</button>
                           <button type="button" className="inbox-view-buyer-button" onClick={() => setBuyerDialogOpen(true)}><UserRound size={15} /> View buyer</button>
-                          <button type="button" className="inbox-accept-button" onClick={() => setPendingRequestAction({ threadId: selectedThread.id, action: "accept" })}><Check size={15} /> Accept</button>
+                          <button type="button" className="inbox-accept-button" onClick={() => setPendingRequestAction({ threadId: selectedThread.id, action: "accept" })} disabled={saving}><Check size={15} /> Accept</button>
                         </div>
                       </div>
+                    ) : selectedThread.status === "pending" ? (
+                      <div className="inbox-closed-notice">Your order request is awaiting a response from the farmer.</div>
                     ) : (
                       <div className="inbox-closed-notice">
                         {selectedThread.archived && selectedThread.status === "pending"
@@ -359,7 +370,7 @@ function InboxPage() {
                 ) : (
                   <>
                     <div className="inbox-chat-body">
-                      {selectedThread.listingName && selectedThread.quantity > 0 && (
+                      {selectedThread.listingName && selectedThread.quantity > 0 && selectedThread.isFarmer && (
                         <div className="inbox-order-summary">
                           <div className="inbox-order-icon"><MessageCircle size={17} /></div>
                           <div className="inbox-order-details">
@@ -370,7 +381,13 @@ function InboxPage() {
                           <strong className="inbox-order-total">{money.format(selectedThread.subtotal ?? selectedThread.quantity * selectedThread.listingPrice)}</strong>
                         </div>
                       )}
-                      {selectedThread.listingName && selectedThread.quantity > 0 && (
+                      {selectedThread.listingName && selectedThread.quantity > 0 && !selectedThread.isFarmer && (
+                        <div className="inbox-order-status-control">
+                          <label>Order status</label>
+                          <div><span className={`inbox-order-status-badge is-${getEditableOrderStatus(selectedThread.orderStatus)}`}>{getOrderStatusLabel(selectedThread.orderStatus)}</span></div>
+                        </div>
+                      )}
+                      {selectedThread.listingName && selectedThread.quantity > 0 && selectedThread.isFarmer && (
                         <div className="inbox-order-status-control">
                           <label htmlFor="order-status">Order status</label>
                           <div>
@@ -382,6 +399,7 @@ function InboxPage() {
                               value={getEditableOrderStatus(selectedThread.orderStatus)}
                               onChange={(event) => requestOrderStatusChange(event.target.value)}
                               aria-label="Update order status"
+                              disabled={saving}
                             >
                               {ORDER_STATUSES.map((status) => (
                                 <option key={status.value} value={status.value}>{status.label}</option>
@@ -393,7 +411,7 @@ function InboxPage() {
                       )}
                       <div className="inbox-messages" aria-live="polite">
                         {selectedThread.messages.map((message) => (
-                          <MessageCard key={message.id} message={message} own={message.sender === "farmer"} />
+                          <MessageCard key={message.id} message={message} own={Boolean(message.own)} />
                         ))}
                       </div>
                     </div>
@@ -404,8 +422,9 @@ function InboxPage() {
                       onChange={(event) => setDraft(event.target.value)}
                       placeholder="Write a reply..."
                       aria-label="Write a message"
+                      disabled={saving}
                     />
-                    <button type="submit" disabled={!draft.trim()}><span>Send</span><Send size={15} /></button>
+                    <button type="submit" disabled={!draft.trim() || saving}><span>{saving ? "Sending..." : "Send"}</span><Send size={15} /></button>
                   </form>
                   </>
                 )}
@@ -417,7 +436,7 @@ function InboxPage() {
         </div>
 
         {notice && <p className="inbox-notice" role="status">{notice}</p>}
-        <p className="inbox-disclaimer">Demo conversations, archive actions, and order status changes are stored in this browser only. Live order updates are not connected yet.</p>
+        <p className="inbox-disclaimer">Order requests, messages, and status updates are synced to your AgriLink account.</p>
       </div>
 
       {buyerDialogOpen && selectedThread && (
@@ -443,7 +462,7 @@ function InboxPage() {
               <div><dt>AgriLink member since</dt><dd>{selectedThread.buyer?.memberSince || "Not available"}</dd></div>
               <div><dt>Previous orders</dt><dd>{selectedThread.buyer?.orderCount ?? 0}</dd></div>
             </dl>
-            <p className="inbox-buyer-private-note">Buyer details are sample preview data and are not connected to a customer account.</p>
+            <p className="inbox-buyer-private-note">Buyer details are supplied with the order request and attached to this conversation.</p>
             <footer><button type="button" onClick={() => setBuyerDialogOpen(false)}>Close</button></footer>
           </section>
         </div>
@@ -487,7 +506,7 @@ function InboxPage() {
                 <div className="inbox-modal-order-total"><dt>Order subtotal</dt><dd>{money.format(selectedThread.subtotal ?? selectedThread.quantity * selectedThread.listingPrice)}</dd></div>
               </dl>
             </section>
-            <p className="inbox-buyer-private-note">Buyer details are sample preview data and are not connected to a customer account.</p>
+            <p className="inbox-buyer-private-note">Buyer details are supplied with the order request and attached to this conversation.</p>
             <footer><button type="button" onClick={() => setOrderDetailsDialogOpen(false)}>Close</button></footer>
           </section>
         </div>
@@ -514,7 +533,7 @@ function InboxPage() {
                 : <>Update this order from <strong>{getOrderStatusLabel(pendingOrderStatus.currentStatus)}</strong> to <strong>{getOrderStatusLabel(pendingOrderStatus.orderStatus)}</strong>?</>}
             </p>
             <footer>
-              <button type="button" className="inbox-status-cancel-button" onClick={() => {
+              <button type="button" className="inbox-status-cancel-button" disabled={saving} onClick={() => {
                 setPendingOrderStatus(null)
                 setPendingRequestAction(null)
               }}>{pendingRequestAction ? "Cancel" : "Keep current status"}</button>
@@ -522,8 +541,9 @@ function InboxPage() {
                 type="button"
                 className={`inbox-status-confirm-button${pendingRequestAction?.action === "reject" ? " is-destructive" : ""}`}
                 onClick={pendingRequestAction ? confirmRequestAction : confirmOrderStatusChange}
+                disabled={saving}
               >
-                {pendingRequestAction ? `Confirm ${pendingRequestAction.action}` : "Confirm change"}
+                {saving ? "Saving..." : pendingRequestAction ? `Confirm ${pendingRequestAction.action}` : "Confirm change"}
               </button>
             </footer>
           </section>

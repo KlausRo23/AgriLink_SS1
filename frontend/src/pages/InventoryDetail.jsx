@@ -1,10 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowLeft, BellRing, Boxes, CalendarDays, Clock3, Leaf, PackageCheck, Pencil, ShieldCheck, Store } from "lucide-react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import AddInventoryListingModal from "../component/modal/AddInventoryListingModal"
 import ReminderModal from "../component/modal/ReminderModal"
-import { loadInventoryPreview } from "../data/inventory"
-import { loadListings, saveListings } from "../data/listings"
+import { createListing, getInventoryItem } from "../api/api"
+import { normalizeInventoryItem } from "../utils/inventory"
 import "../styles/inventory.css"
 
 const STATUS_LABELS = {
@@ -34,14 +34,35 @@ function getReminder(itemId) {
 
 function InventoryDetail() {
   const { id } = useParams()
-  const location = useLocation()
   const navigate = useNavigate()
-  const item = location.state?.item || loadInventoryPreview().find((inventoryItem) => inventoryItem.id === id)
+  const [item, setItem] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [isReminderOpen, setIsReminderOpen] = useState(false)
   const [isListingOpen, setIsListingOpen] = useState(false)
-  const [reminder, setReminder] = useState(() => item ? getReminder(item.id) : null)
+  const [reminder, setReminder] = useState(null)
 
-  if (!item) {
+  useEffect(() => {
+    let active = true
+    getInventoryItem(id)
+      .then(({ data }) => {
+        if (!active) return
+        const inventoryItem = normalizeInventoryItem(data.data)
+        setItem(inventoryItem)
+        setReminder(getReminder(inventoryItem.id))
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.response?.data?.message || "Could not load this inventory item.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  if (loading || loadError || !item) {
     return (
       <main className="dashboard-main inventory-page">
         <header className="dashboard-topbar">
@@ -50,9 +71,13 @@ function InventoryDetail() {
           </button>
         </header>
         <section className="inventory-detail-not-found">
-          <Boxes size={30} aria-hidden="true" />
-          <h1>Inventory item not found</h1>
-          <p>This item may have been archived or removed from the inventory preview.</p>
+          {loading ? <h1 role="status">Loading inventory item...</h1> : (
+            <>
+              <Boxes size={30} aria-hidden="true" />
+              <h1>{loadError ? "Could not load item" : "Inventory item not found"}</h1>
+              <p>{loadError || "This item may have been archived or removed from your inventory."}</p>
+            </>
+          )}
           <button type="button" className="inventory-add-button" onClick={() => navigate("/inventory")}>Return to inventory</button>
         </section>
       </main>
@@ -63,34 +88,19 @@ function InventoryDetail() {
   const status = STATUS_LABELS[item.status] ? item.status : "fresh"
   const categoryLabel = isSupply ? "Farm supply" : "Harvested crop"
 
-  function addToListing({ quantity, price, description }) {
-    const today = new Date()
-    const listedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
-    const listing = {
-      id: `listing-${crypto.randomUUID()}`,
-      name: item.name,
-      emoji: item.emoji || "🥬",
-      description,
-      seller: "Farm owner",
-      region: "Local farm",
-      price,
-      stock: quantity,
-      unit: item.unit,
-      listedDate,
-      status: "pending",
-      category: "Fresh produce",
-      harvestDate: item.harvestDate,
-      details: description,
-      imageUrl: item.image || "",
-      visual: item.visual || "leafy",
+  async function addToListing({ quantity, price, description }) {
+    try {
+      await createListing({
+        inventoryId: item.id,
+        stock: quantity,
+        price,
+        description,
+      })
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Could not submit this listing.", { cause: error })
     }
-
-    const saved = saveListings([listing, ...loadListings()])
-    if (!saved) return false
-
     setIsListingOpen(false)
-    navigate("/inventory", { state: { listingNotice: { name: item.name, listingId: listing.id } } })
-    return true
+    navigate("/inventory", { state: { listingNotice: { name: item.name } } })
   }
 
   return (
@@ -132,7 +142,7 @@ function InventoryDetail() {
             <p>Current quantity</p>
             <strong>{item.quantity}<small>{item.unit}</small></strong>
             <div className="inventory-detail-stock-divider" />
-            {item.category === "crop" && status !== "spoiled" && (
+            {item.category === "crop" && status !== "spoiled" && ["kg", "sack", "heads"].includes(item.unit) && (
               <button type="button" className="inventory-detail-listing-link" onClick={() => setIsListingOpen(true)}>
                 <Store size={15} aria-hidden="true" /> Add to listing
               </button>
@@ -142,7 +152,8 @@ function InventoryDetail() {
 
         <section className={`inventory-detail-facts${isSupply ? " inventory-detail-facts--supply" : ""}`} aria-label="Item information">
           <div><CalendarDays size={16} aria-hidden="true" /><span>{isSupply ? "Received date" : "Harvested date"}</span><strong>{formatDate(item.harvestDate)}</strong></div>
-          {!isSupply && <div><PackageCheck size={16} aria-hidden="true" /><span>Condition</span><strong>{STATUS_LABELS[status]}</strong></div>}
+          <div><PackageCheck size={16} aria-hidden="true" /><span>Condition</span><strong>{STATUS_LABELS[status]}</strong></div>
+          {item.expirationDate && <div><CalendarDays size={16} aria-hidden="true" /><span>Expiration date</span><strong>{formatDate(item.expirationDate)}</strong></div>}
           <div>{isSupply ? <Boxes size={16} aria-hidden="true" /> : <Leaf size={16} aria-hidden="true" />}<span>Inventory type</span><strong>{categoryLabel}</strong></div>
         </section>
 

@@ -1,12 +1,14 @@
 import { useState } from "react"
 import { Archive, ArrowRight, CalendarDays, Clock3, MoreHorizontal, Pencil, Sprout } from "lucide-react"
 import { formatCropDate } from "../../utils/cropLifecycle"
+import { getAssetUrl } from "../../api/api"
 import "../../styles/crops.css"
 
 const STATUS_LABELS = {
   growing: "Growing",
   "ready-to-harvest": "Ready to harvest",
   overdue: "Overdue",
+  harvested: "Harvested",
 }
 
 function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView }) {
@@ -27,8 +29,8 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView
         aria-label={`View ${crop.name} crop details`}
       />
       <div className="crop-card-image">
-        {crop.image ? (
-          <img src={crop.image} alt={`${crop.name} crop`} />
+        {crop.imageUrl || crop.image ? (
+          <img src={getAssetUrl(crop.imageUrl || crop.image)} alt={`${crop.name} crop`} />
         ) : (
           <div className="crop-card-image-placeholder" aria-label={`${crop.name} image placeholder`}>
             <span className="crop-placeholder-orbit crop-placeholder-orbit-one" />
@@ -54,9 +56,11 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView
           </button>
           {isMenuOpen && (
             <div className="crop-card-menu-list" role="menu" aria-label={`${crop.name} actions`}>
-              <button type="button" role="menuitem" onClick={() => runAction(onEdit)}>
-                <Pencil size={14} aria-hidden="true" /> Edit crop
-              </button>
+              {lifecycleStatus !== "harvested" && (
+                <button type="button" role="menuitem" onClick={() => runAction(onEdit)}>
+                  <Pencil size={14} aria-hidden="true" /> Edit crop
+                </button>
+              )}
               <button type="button" role="menuitem" className="is-danger" onClick={() => runAction(onArchive)}>
                 <Archive size={14} aria-hidden="true" /> Archive crop
               </button>
@@ -68,7 +72,7 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView
       <div className="crop-card-content">
         <div className="crop-card-title-row">
           <h2>{crop.name}</h2>
-          {crop.quantity != null && <span className="crop-quantity">{crop.quantity} plants</span>}
+          {crop.seedlings != null && <span className="crop-quantity">{crop.seedlings} seedlings</span>}
         </div>
         <div className="crop-card-dates">
           <span><CalendarDays size={14} aria-hidden="true" /><strong>Planted:</strong> {formatCropDate(crop.datePlanted)}</span>

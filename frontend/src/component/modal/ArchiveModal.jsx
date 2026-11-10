@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react"
 import { Archive, Box, Check, Leaf, RotateCcw, Trash2, X } from "lucide-react"
+import { deleteArchivedItem, getArchivedItems, restoreArchivedItem } from "../../api/api"
 import "../../styles/history.css"
-
-const INITIAL_ARCHIVE = [
-  { id: "archive-1", name: "Pesticide", itemType: "Supply", archivedAt: "2026-09-23T16:20:00", reason: "Archived from inventory" },
-  { id: "archive-2", name: "Lettuce", itemType: "Crop", archivedAt: "2026-09-22T09:05:00", reason: "Archived crop" },
-  { id: "archive-3", name: "Seedling trays", itemType: "Supply", archivedAt: "2026-09-21T13:45:00", reason: "Archived from inventory" },
-  { id: "archive-4", name: "Eggplant", itemType: "Crop", archivedAt: "2026-09-20T11:30:00", reason: "Archived crop" },
-  { id: "archive-5", name: "Corn", itemType: "Crop", archivedAt: "2026-09-18T08:10:00", reason: "Archived crop" },
-  { id: "archive-6", name: "Tomato", itemType: "Crop", archivedAt: "2026-09-17T12:00:00", reason: "Archived crop" },
-]
 
 const ARCHIVE_TABS = [
   { id: "all", label: "All" },
   { id: "Crop", label: "Crops" },
-  { id: "Supply", label: "Supplies" },
+  { id: "Inventory", label: "Inventory" },
+  { id: "Listing", label: "Listings" },
 ]
 
 function formatArchivedAt(value) {
@@ -29,11 +22,58 @@ function formatArchivedAt(value) {
   }).format(date)
 }
 
-function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = [] }) {
-  const [items, setItems] = useState(INITIAL_ARCHIVE)
+function archiveItemLabel(item) {
+  if (item.itemType === "Inventory") {
+    return item.info?.category === "supply" ? "Supply" : "Crop inventory"
+  }
+  return item.itemType
+}
+
+function ArchiveModal({ isOpen, onClose, onChanged }) {
+  const [items, setItems] = useState([])
+  const [pagination, setPagination] = useState(null)
   const [activeTab, setActiveTab] = useState("all")
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [pendingId, setPendingId] = useState("")
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    let active = true
+    Promise.resolve()
+      .then(() => {
+        if (!active) return null
+        setItems([])
+        setPagination(null)
+        setError("")
+        setMessage("")
+        setIsLoading(true)
+        return getArchivedItems({ page: 1, limit: 50 })
+      })
+      .then((response) => {
+        if (!response) return
+        const { data } = response
+        const result = data?.data
+        if (!Array.isArray(result?.items)) throw new Error("The archive response was invalid.")
+        if (active) {
+          setItems(result.items)
+          setPagination(result.pagination)
+        }
+      })
+      .catch((requestError) => {
+        console.error("Could not load archive:", requestError)
+        if (active) setError(requestError.response?.data?.message || requestError.message || "Could not load the archive.")
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+
+    return () => { active = false }
+  }, [isOpen, reloadKey])
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -51,40 +91,64 @@ function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = []
 
   if (!isOpen) return null
 
-  const cropArchiveItems = archivedCrops.map((crop) => ({
-    ...crop,
-    itemType: "Crop",
-    isPersistedCrop: true,
-  }))
-  const archiveItems = [...items, ...cropArchiveItems]
-  const filteredItems = archiveItems.filter((item) => activeTab === "all" || item.itemType === activeTab)
+  const filteredItems = items.filter((item) => activeTab === "all" || item.itemType === activeTab)
   const counts = {
-    all: archiveItems.length,
-    Crop: archiveItems.filter((item) => item.itemType === "Crop").length,
-    Supply: items.filter((item) => item.itemType === "Supply").length,
+    all: items.length,
+    Crop: items.filter((item) => item.itemType === "Crop").length,
+    Inventory: items.filter((item) => item.itemType === "Inventory").length,
+    Listing: items.filter((item) => item.itemType === "Listing").length,
   }
 
-  function restoreItem(item) {
+  async function loadMore() {
+    if (!pagination || pagination.page >= pagination.totalPages || isLoading) return
+    setIsLoading(true)
+    setError("")
     try {
-      onRestore?.(item)
-      if (!item.isPersistedCrop) setItems((current) => current.filter((entry) => entry.id !== item.id))
-      setMessage(`${item.name} restored to your active items.`)
-    } catch (error) {
-      console.error("Could not restore archived item:", error)
-      setMessage(error?.message || "Could not restore this item. Please try again.")
+      const { data } = await getArchivedItems({ page: pagination.page + 1, limit: pagination.limit })
+      const result = data?.data
+      if (!Array.isArray(result?.items)) throw new Error("The archive response was invalid.")
+      setItems((current) => [...current, ...result.items])
+      setPagination(result.pagination)
+    } catch (requestError) {
+      console.error("Could not load more archived items:", requestError)
+      setError(requestError.response?.data?.message || requestError.message || "Could not load more archived items.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  function deleteItem() {
-    if (!confirmingDelete) return
+  async function restoreItem(item) {
+    setPendingId(item.id)
+    setError("")
     try {
-      if (confirmingDelete.isPersistedCrop) onDelete?.(confirmingDelete)
-      else setItems((current) => current.filter((entry) => entry.id !== confirmingDelete.id))
-      setMessage(`${confirmingDelete.name} was permanently deleted.`)
+      await restoreArchivedItem(item.id)
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+      setMessage(`${item.name} restored to your active items.`)
+      await onChanged?.()
+    } catch (requestError) {
+      console.error("Could not restore archived item:", requestError)
+      setError(requestError.response?.data?.message || requestError.message || "Could not restore this item.")
+    } finally {
+      setPendingId("")
+    }
+  }
+
+  async function deleteItem() {
+    if (!confirmingDelete) return
+    const item = confirmingDelete
+    setPendingId(item.id)
+    setError("")
+    try {
+      await deleteArchivedItem(item.id)
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+      setMessage(`${item.name} was permanently deleted.`)
       setConfirmingDelete(null)
-    } catch (error) {
-      console.error("Could not permanently delete archived item:", error)
-      setMessage(error?.message || "Could not delete this item. Please try again.")
+      await onChanged?.()
+    } catch (requestError) {
+      console.error("Could not permanently delete archived item:", requestError)
+      setError(requestError.response?.data?.message || requestError.message || "Could not delete this item.")
+    } finally {
+      setPendingId("")
     }
   }
 
@@ -121,9 +185,10 @@ function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = []
           ))}
         </div>
 
-        <div className="archive-modal-list">
+        {error && <p className="archive-modal-message" role="alert">{error}</p>}
+        <div className="archive-modal-list" aria-busy={isLoading}>
           {filteredItems.length ? filteredItems.map((item) => {
-            const isCrop = item.itemType === "Crop"
+            const isCrop = item.itemType === "Crop" || (item.itemType === "Inventory" && item.info?.category === "crop")
             const ItemIcon = isCrop ? Leaf : Box
             return (
               <article className="archive-modal-item" key={item.id}>
@@ -132,13 +197,13 @@ function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = []
                 </span>
                 <div className="archive-modal-item-info">
                   <strong>{item.name}</strong>
-                  <span>{item.itemType} · Archived {formatArchivedAt(item.archivedAt)}</span>
+                  <span>{archiveItemLabel(item)} · Archived {formatArchivedAt(item.archivedAt)}</span>
                 </div>
                 <div className="archive-modal-item-actions">
-                  <button type="button" className="archive-restore-button" onClick={() => restoreItem(item)}>
+                  <button type="button" className="archive-restore-button" disabled={pendingId === item.id} onClick={() => restoreItem(item)}>
                     <RotateCcw size={13} aria-hidden="true" /> Restore
                   </button>
-                  <button type="button" className="archive-delete-button" onClick={() => setConfirmingDelete(item)}>
+                  <button type="button" className="archive-delete-button" disabled={pendingId === item.id} onClick={() => setConfirmingDelete(item)}>
                     <Trash2 size={13} aria-hidden="true" /> Delete
                   </button>
                 </div>
@@ -147,14 +212,19 @@ function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = []
           }) : (
             <div className="archive-modal-empty">
               <Archive size={23} aria-hidden="true" />
-              <strong>No archived {activeTab === "all" ? "items" : `${activeTab.toLowerCase()}s`}</strong>
-              <span>Items you archive will appear here.</span>
+              <strong>{error ? "Archive unavailable" : isLoading ? "Loading archive…" : `No archived ${activeTab === "all" ? "items" : `${activeTab.toLowerCase()} items`}`}</strong>
+              {error && <button type="button" className="history-load-more" onClick={() => setReloadKey((key) => key + 1)}>Try again</button>}
+              {!isLoading && !error && <span>Items you archive will appear here.</span>}
             </div>
           )}
         </div>
+        {pagination && pagination.page < pagination.totalPages && (
+          <button type="button" className="history-load-more" disabled={isLoading} onClick={loadMore}>
+            {isLoading ? "Loading…" : "Load more"}
+          </button>
+        )}
 
         {message && <p className="archive-modal-message" role="status"><Check size={14} aria-hidden="true" />{message}</p>}
-        <p className="archive-modal-preview-note">Archive actions are preview-only and are not saved to the server.</p>
       </section>
 
       {confirmingDelete && (
@@ -164,8 +234,10 @@ function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = []
             <h3 id="archive-confirm-title">Delete {confirmingDelete.name} permanently?</h3>
             <p>This item will be removed from the archive and cannot be restored.</p>
             <div>
-              <button type="button" className="archive-confirm-cancel" onClick={() => setConfirmingDelete(null)}>Cancel</button>
-              <button type="button" className="archive-confirm-delete" onClick={deleteItem}>Delete permanently</button>
+              <button type="button" className="archive-confirm-cancel" disabled={pendingId === confirmingDelete.id} onClick={() => setConfirmingDelete(null)}>Cancel</button>
+              <button type="button" className="archive-confirm-delete" disabled={pendingId === confirmingDelete.id} onClick={deleteItem}>
+                {pendingId === confirmingDelete.id ? "Deleting…" : "Delete permanently"}
+              </button>
             </div>
           </section>
         </div>

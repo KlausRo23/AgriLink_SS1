@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { CROP_SPECIALTIES } from "../data/cropSpecialties"
 import { DELIVERY_MODES } from "../data/deliveryModes"
+import { useFormContext } from "../context/useFormContext"
 import "../styles/Farmerformpage.css"
 
 const REGIONS = [
@@ -101,7 +103,9 @@ function Section({ title, description, step, activeStep, children }) {
   )
 }
 
-function FarmFormPage({ onSubmit }) {
+function FarmFormPage() {
+  const navigate = useNavigate()
+  const { submitFarm } = useFormContext()
   const [values, setValues] = useState(EMPTY_VALUES)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -111,7 +115,6 @@ function FarmFormPage({ onSubmit }) {
   const [activeStep, setActiveStep] = useState(0)
   const [submitError, setSubmitError] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
   const formRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -269,16 +272,10 @@ function FarmFormPage({ onSubmit }) {
       return
     }
 
-    if (!onSubmit) {
-      setSubmitError("Farm submission is not configured yet.")
-      return
-    }
-
     setSubmitting(true)
     try {
-      await onSubmit(buildFormData())
-      setSubmitted(true)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      await submitFarm(buildFormData())
+      navigate("/verification", { replace: true })
     } catch (error) {
       const serverFields = error?.response?.data?.data
       if (serverFields && typeof serverFields === "object") {
@@ -292,23 +289,6 @@ function FarmFormPage({ onSubmit }) {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (submitted) {
-    return (
-      <main className="ff-page">
-        <div className="ff-shell">
-          <section className="ff-card ff-done" aria-live="polite">
-            <span className="ff-done-icon" aria-hidden="true">✓</span>
-            <h1 className="ff-done-title">Farm submitted for review</h1>
-            <p className="ff-done-text">Thanks, {values.farmName}. We’ll review your farm details before buyers can see them.</p>
-            <button type="button" className="ff-btn ff-btn-ghost" onClick={() => setSubmitted(false)}>
-              Edit my details
-            </button>
-          </section>
-        </div>
-      </main>
-    )
   }
 
   return (

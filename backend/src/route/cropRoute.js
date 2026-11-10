@@ -1,6 +1,5 @@
 import express from "express"
 import { verifyAccessToken } from "../middleware/auth.js"
-import isFarmer from "../middleware/isFarmer.js"
 import checkCropOwnership from "../middleware/checkCropOwnership.js"
 import uploadCropPhoto from "../middleware/uploadCropPhoto.js"
 import {
@@ -17,22 +16,22 @@ const router = express.Router()
 // Everything here is owner-only: a farmer can only ever see and change their own crops.
 
 router.get("/",
-    verifyAccessToken, isFarmer, getAllCrops)
+    verifyAccessToken, getAllCrops)
 
 router.get("/:id",
-    verifyAccessToken, isFarmer, checkCropOwnership, getCropDetail)
+    verifyAccessToken, checkCropOwnership, getCropDetail)
 
 router.post("/add-crop",
-    verifyAccessToken, isFarmer, uploadCropPhoto, createCrop)
+    verifyAccessToken, uploadCropPhoto, createCrop)
 
 router.put("/edit-crop/:id",
-    verifyAccessToken, isFarmer, checkCropOwnership, uploadCropPhoto, editCrop)
+    verifyAccessToken, checkCropOwnership, uploadCropPhoto, editCrop)
 
 // Record Harvest: fields quantity, unit (required), notes, shelfLifeDays, confirmEarly, image (optional)
 router.post("/harvest/:id",
-    verifyAccessToken, isFarmer, checkCropOwnership, uploadCropPhoto, harvestCrop)
+    verifyAccessToken, checkCropOwnership, uploadCropPhoto, harvestCrop)
 
 router.delete("/crop/:id",
-    verifyAccessToken, isFarmer, checkCropOwnership, archiveCrop)
+    verifyAccessToken, checkCropOwnership, archiveCrop)
 
 export default router
