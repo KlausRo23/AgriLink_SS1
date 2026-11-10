@@ -9,6 +9,8 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
   const [unit, setUnit] = useState("kg")
   const [notes, setNotes] = useState("")
   const [shelfLifeDays, setShelfLifeDays] = useState(crop?.shelfLifeDays || 7)
+  const [autoListing, setAutoListing] = useState(false)
+  const [listingPrice, setListingPrice] = useState("")
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState("")
   const [error, setError] = useState("")
@@ -64,14 +66,25 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
       setError("Shelf life must be from 1 to 3650 days.")
       return
     }
-    onSubmit?.({
-      quantity: parsedQuantity,
-      unit,
-      notes: notes.trim(),
-      shelfLifeDays: parsedShelfLife,
-      photo,
-      photoPreview,
-    })
+    const parsedPrice = Number(listingPrice)
+    if (autoListing && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
+      setError("Enter a listing price greater than zero.")
+      return
+    }
+    try {
+      onSubmit?.({
+        quantity: parsedQuantity,
+        unit,
+        notes: notes.trim(),
+        shelfLifeDays: parsedShelfLife,
+        autoListing,
+        listingPrice: autoListing ? parsedPrice : null,
+        photo,
+        photoPreview,
+      })
+    } catch (submitError) {
+      setError(submitError?.message || "Could not record this harvest. Please try again.")
+    }
   }
 
   return (
@@ -127,6 +140,29 @@ function RecordHarvestModal({ open, crop, onClose, onSubmit }) {
               required
             />
           </label>
+
+          <label className="harvest-auto-listing-option">
+            <input type="checkbox" checked={autoListing} onChange={(event) => setAutoListing(event.target.checked)} />
+            <span>
+              <strong>Add harvest to Listings now</strong>
+              <small>Choose this to send the harvest to Listings instead of Inventory.</small>
+            </span>
+          </label>
+
+          {autoListing && (
+            <label>
+              Listing price per {unit} (PHP)
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={listingPrice}
+                onChange={(event) => setListingPrice(event.target.value)}
+                placeholder="e.g. 85"
+                required
+              />
+            </label>
+          )}
 
           <label>
             Notes <span className="harvest-optional">(optional)</span>

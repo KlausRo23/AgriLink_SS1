@@ -4,21 +4,21 @@ import { NavLink, useLocation } from "react-router-dom"
 import agrilinkLogo from "../images/agrilink-logo.png"
 import "../styles/dashboard.css"
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { label: "Crops", to: "/crops", icon: Leaf },
   { label: "Inventory", to: "/inventory", icon: Boxes },
   { label: "Inbox", to: "/inbox", icon: Inbox },
   { label: "Listing", to: "/listings", icon: ShoppingBag },
   { label: "History", to: "/history", icon: Clock3 },
-  { label: "Settings", to: "/settings", icon: Settings },
 ]
+const SETTINGS_NAV_ITEM = { label: "Settings", to: "/settings", icon: Settings }
 const MOBILE_ITEMS = [
   { label: "Home", to: "/dashboard", icon: LayoutDashboard },
   { label: "Crops", to: "/crops", icon: Leaf },
   { label: "Inventory", to: "/inventory", icon: Boxes },
 ]
-const MORE_ITEMS = NAV_ITEMS.slice(3)
+const MORE_ITEMS = [...PRIMARY_NAV_ITEMS.slice(3), SETTINGS_NAV_ITEM]
 
 function NavBar() {
   const [moreOpen, setMoreOpen] = useState(false)
@@ -42,7 +42,7 @@ function NavBar() {
       </NavLink>
 
       <nav className="app-nav" aria-label="Main navigation">
-        {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
+        {PRIMARY_NAV_ITEMS.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
             className={({ isActive }) => `app-nav-link${isActive ? " is-active" : ""}`}
@@ -53,6 +53,13 @@ function NavBar() {
             <span>{label}</span>
           </NavLink>
         ))}
+        <NavLink
+          className={({ isActive }) => `app-nav-link app-nav-settings-link${isActive ? " is-active" : ""}`}
+          to={SETTINGS_NAV_ITEM.to}
+        >
+          <Settings size={18} strokeWidth={2} aria-hidden="true" />
+          <span>{SETTINGS_NAV_ITEM.label}</span>
+        </NavLink>
       </nav>
 
       <nav className="app-mobile-nav" aria-label="Mobile navigation">

@@ -112,6 +112,7 @@ function AddCropPage() {
   const [field, setField] = useState("")
   const [plantedDate, setPlantedDate] = useState(today)
   const [estimatedHarvest, setEstimatedHarvest] = useState("")
+  const [shelfLifeDays, setShelfLifeDays] = useState("")
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
   const [imageName, setImageName] = useState("")
@@ -135,6 +136,7 @@ function AddCropPage() {
     if (!nextCrop) return
     setSelectedName(name)
     setEstimatedHarvest(plantedDate ? addDays(plantedDate, nextCrop.days) : "")
+    setShelfLifeDays(String(nextCrop.shelfLife))
     setError("")
   }
 
@@ -176,6 +178,11 @@ function AddCropPage() {
       setError("Choose a crop before adding it.")
       return
     }
+    const parsedShelfLife = Number(shelfLifeDays)
+    if (!Number.isInteger(parsedShelfLife) || parsedShelfLife < 1 || parsedShelfLife > 3650) {
+      setError("Shelf life must be from 1 to 3650 days.")
+      return
+    }
 
     const crop = {
       id: `crop-${cropId}`,
@@ -186,11 +193,12 @@ function AddCropPage() {
       seedlings: null,
       datePlanted: plantedDate,
       harvestDate: estimatedHarvest || addDays(plantedDate, selectedCrop.days),
-      sellDate: addDays(estimatedHarvest || addDays(plantedDate, selectedCrop.days), selectedCrop.shelfLife),
-      shelfLifeDays: selectedCrop.shelfLife,
+      sellDate: addDays(estimatedHarvest || addDays(plantedDate, selectedCrop.days), parsedShelfLife),
+      shelfLifeDays: parsedShelfLife,
       description: description.trim(),
       field,
       image,
+      imageName,
       isSpecialty: specialtyCrop,
       region: region.name,
     }
@@ -219,7 +227,7 @@ function AddCropPage() {
         </button>
         <header className="add-crop-page-heading">
           <p className="dashboard-eyebrow">Farm management</p>
-          <h1>Plant a new crop</h1>
+          <h1 className="dashboard-page-title">Plant a new crop</h1>
           <p>Choose a crop and add its planting details to your farm.</p>
         </header>
 
@@ -341,10 +349,14 @@ function AddCropPage() {
                 <input type="date" value={estimatedHarvest} min={plantedDate || undefined} onChange={(event) => setEstimatedHarvest(event.target.value)} />
               </label>
               <label className="add-crop-field">
+                <span className="add-crop-date-label">Shelf life (days)</span>
+                <input type="number" min="1" max="3650" step="1" value={shelfLifeDays} onChange={(event) => setShelfLifeDays(event.target.value)} required />
+              </label>
+              <label className="add-crop-field">
                 <span className="add-crop-date-label">Estimated sell-by date</span>
                 <input
                   type="date"
-                  value={harvestEstimate && selectedCrop ? addDays(harvestEstimate, selectedCrop.shelfLife) : ""}
+                  value={harvestEstimate && selectedCrop && Number(shelfLifeDays) > 0 ? addDays(harvestEstimate, Number(shelfLifeDays)) : ""}
                   readOnly
                   aria-readonly="true"
                 />

@@ -1,4 +1,5 @@
-import { ArrowRight, CalendarDays, Clock3, Pencil, Sprout, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { Archive, ArrowRight, CalendarDays, Clock3, MoreHorizontal, Pencil, Sprout } from "lucide-react"
 import { formatCropDate } from "../../utils/cropLifecycle"
 import "../../styles/crops.css"
 
@@ -8,11 +9,23 @@ const STATUS_LABELS = {
   overdue: "Overdue",
 }
 
-function CropCard({ crop, lifecycleStatus = "growing", onEdit, onDelete, onView }) {
+function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const statusLabel = STATUS_LABELS[lifecycleStatus]
 
+  function runAction(action) {
+    setIsMenuOpen(false)
+    action?.(crop)
+  }
+
   return (
-    <article className={`crop-card crop-card--${lifecycleStatus}`} tabIndex={0}>
+    <article className={`crop-card crop-card--${lifecycleStatus}`}>
+      <button
+        type="button"
+        className="crop-card-open"
+        onClick={() => onView?.(crop)}
+        aria-label={`View ${crop.name} crop details`}
+      />
       <div className="crop-card-image">
         {crop.image ? (
           <img src={crop.image} alt={`${crop.name} crop`} />
@@ -25,13 +38,30 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onDelete, onView 
           </div>
         )}
         <span className={`crop-status-badge crop-status-badge--${lifecycleStatus}`}>{statusLabel}</span>
-        <div className="crop-card-actions" aria-label={`${crop.name} actions`}>
-          <button type="button" className="crop-action-button crop-action-edit" onClick={() => onEdit?.(crop)} aria-label={`Edit ${crop.name}`}>
-            <Pencil size={15} aria-hidden="true" />
+        <div className={`crop-card-menu${isMenuOpen ? " is-open" : ""}`}>
+          <button
+            type="button"
+            className="crop-card-menu-trigger"
+            aria-label={`More actions for ${crop.name}`}
+            aria-expanded={isMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setIsMenuOpen(false)
+            }}
+          >
+            <MoreHorizontal size={18} aria-hidden="true" />
           </button>
-          <button type="button" className="crop-action-button crop-action-delete" onClick={() => onDelete?.(crop)} aria-label={`Delete ${crop.name}`}>
-            <Trash2 size={15} aria-hidden="true" />
-          </button>
+          {isMenuOpen && (
+            <div className="crop-card-menu-list" role="menu" aria-label={`${crop.name} actions`}>
+              <button type="button" role="menuitem" onClick={() => runAction(onEdit)}>
+                <Pencil size={14} aria-hidden="true" /> Edit crop
+              </button>
+              <button type="button" role="menuitem" className="is-danger" onClick={() => runAction(onArchive)}>
+                <Archive size={14} aria-hidden="true" /> Archive crop
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -46,9 +76,9 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onDelete, onView 
         </div>
         {crop.description && <p className="crop-card-description">{crop.description}</p>}
         <div className="crop-card-footer">
-          <button type="button" className="crop-view-button" onClick={() => onView?.(crop)}>
+          <span className="crop-view-button">
             View crop <ArrowRight size={14} aria-hidden="true" />
-          </button>
+          </span>
           <span className="crop-category">{crop.category || "Crop"}</span>
         </div>
       </div>

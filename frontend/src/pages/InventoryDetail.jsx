@@ -1,8 +1,10 @@
 import { useState } from "react"
-import { ArrowLeft, BellRing, Boxes, CalendarDays, Clock3, Leaf, PackageCheck, Pencil, ShieldCheck } from "lucide-react"
+import { ArrowLeft, BellRing, Boxes, CalendarDays, Clock3, Leaf, PackageCheck, Pencil, ShieldCheck, Store } from "lucide-react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
+import AddInventoryListingModal from "../component/modal/AddInventoryListingModal"
 import ReminderModal from "../component/modal/ReminderModal"
 import { loadInventoryPreview } from "../data/inventory"
+import { loadListings, saveListings } from "../data/listings"
 import "../styles/inventory.css"
 
 const STATUS_LABELS = {
@@ -36,6 +38,7 @@ function InventoryDetail() {
   const navigate = useNavigate()
   const item = location.state?.item || loadInventoryPreview().find((inventoryItem) => inventoryItem.id === id)
   const [isReminderOpen, setIsReminderOpen] = useState(false)
+  const [isListingOpen, setIsListingOpen] = useState(false)
   const [reminder, setReminder] = useState(() => item ? getReminder(item.id) : null)
 
   if (!item) {
@@ -56,16 +59,47 @@ function InventoryDetail() {
     )
   }
 
+  const isSupply = item.category === "supply"
   const status = STATUS_LABELS[item.status] ? item.status : "fresh"
-  const categoryLabel = item.category === "supply" ? "Farm supply" : "Harvested crop"
+  const categoryLabel = isSupply ? "Farm supply" : "Harvested crop"
+
+  function addToListing({ quantity, price, description }) {
+    const today = new Date()
+    const listedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+    const listing = {
+      id: `listing-${crypto.randomUUID()}`,
+      name: item.name,
+      emoji: item.emoji || "🥬",
+      description,
+      seller: "Farm owner",
+      region: "Local farm",
+      price,
+      stock: quantity,
+      unit: item.unit,
+      listedDate,
+      status: "pending",
+      category: "Fresh produce",
+      harvestDate: item.harvestDate,
+      details: description,
+      imageUrl: item.image || "",
+      visual: item.visual || "leafy",
+    }
+
+    const saved = saveListings([listing, ...loadListings()])
+    if (!saved) return false
+
+    setIsListingOpen(false)
+    navigate("/inventory", { state: { listingNotice: { name: item.name, listingId: listing.id } } })
+    return true
+  }
 
   return (
     <main className="dashboard-main inventory-page">
-      <header className="dashboard-topbar">
+      <header className="dashboard-topbar inventory-detail-topbar">
         <button type="button" className="inventory-detail-back" onClick={() => navigate("/inventory")}>
           <ArrowLeft size={16} aria-hidden="true" /> Inventory
         </button>
-        <button type="button" className="dashboard-icon-button" aria-label="Account">F</button>
+        <button type="button" className="dashboard-avatar inventory-detail-account" aria-label="Account">F</button>
       </header>
 
       <div className="inventory-content inventory-detail-content">
@@ -77,12 +111,16 @@ function InventoryDetail() {
               {item.image ? <img src={item.image} alt={item.name} /> : <span aria-hidden="true">{item.emoji || "🥬"}</span>}
             </div>
             <div className="inventory-detail-product-info">
-              <span className="inventory-detail-category">{item.category === "supply" ? <Boxes size={13} aria-hidden="true" /> : <Leaf size={13} aria-hidden="true" />} {categoryLabel}</span>
+              <span className="inventory-detail-category">{isSupply ? <Boxes size={13} aria-hidden="true" /> : <Leaf size={13} aria-hidden="true" />} {categoryLabel}</span>
               <h1>{item.name}</h1>
-              <span className={`inventory-detail-status inventory-detail-status--${status}`}>
-                <i aria-hidden="true" /> {STATUS_LABELS[status]}
-              </span>
-              <p>{status === "spoiled" ? "Inspect this item before use or sale." : status === "near-spoiling" ? "Prioritize this item for use or sale." : "This item is currently in good condition."}</p>
+              {!isSupply && (
+                <>
+                  <span className={`inventory-detail-status inventory-detail-status--${status}`}>
+                    <i aria-hidden="true" /> {STATUS_LABELS[status]}
+                  </span>
+                  <p>{status === "spoiled" ? "Inspect this item before use or sale." : status === "near-spoiling" ? "Prioritize this item for use or sale." : "This item is currently in good condition."}</p>
+                </>
+              )}
               <button type="button" className="inventory-detail-edit-link" onClick={() => navigate("/inventory", { state: { editItemId: item.id } })}>
                 <Pencil size={14} aria-hidden="true" /> Edit item details
               </button>
@@ -94,18 +132,18 @@ function InventoryDetail() {
             <p>Current quantity</p>
             <strong>{item.quantity}<small>{item.unit}</small></strong>
             <div className="inventory-detail-stock-divider" />
-            {reminder ? (
-              <span className="inventory-detail-threshold"><BellRing size={14} aria-hidden="true" /> Alert at {reminder.stockLevel} {reminder.unit}</span>
-            ) : (
-              <span className="inventory-detail-threshold is-unset"><BellRing size={14} aria-hidden="true" /> No stock threshold set</span>
+            {item.category === "crop" && status !== "spoiled" && (
+              <button type="button" className="inventory-detail-listing-link" onClick={() => setIsListingOpen(true)}>
+                <Store size={15} aria-hidden="true" /> Add to listing
+              </button>
             )}
           </aside>
         </section>
 
-        <section className="inventory-detail-facts" aria-label="Item information">
-          <div><CalendarDays size={16} aria-hidden="true" /><span>{item.category === "supply" ? "Received date" : "Harvested date"}</span><strong>{formatDate(item.harvestDate)}</strong></div>
-          <div><PackageCheck size={16} aria-hidden="true" /><span>Condition</span><strong>{STATUS_LABELS[status]}</strong></div>
-          <div>{item.category === "supply" ? <Boxes size={16} aria-hidden="true" /> : <Leaf size={16} aria-hidden="true" />}<span>Inventory type</span><strong>{categoryLabel}</strong></div>
+        <section className={`inventory-detail-facts${isSupply ? " inventory-detail-facts--supply" : ""}`} aria-label="Item information">
+          <div><CalendarDays size={16} aria-hidden="true" /><span>{isSupply ? "Received date" : "Harvested date"}</span><strong>{formatDate(item.harvestDate)}</strong></div>
+          {!isSupply && <div><PackageCheck size={16} aria-hidden="true" /><span>Condition</span><strong>{STATUS_LABELS[status]}</strong></div>}
+          <div>{isSupply ? <Boxes size={16} aria-hidden="true" /> : <Leaf size={16} aria-hidden="true" />}<span>Inventory type</span><strong>{categoryLabel}</strong></div>
         </section>
 
         <div className="inventory-detail-lower-grid">
@@ -145,6 +183,13 @@ function InventoryDetail() {
           item={item}
           onClose={() => setIsReminderOpen(false)}
           onSaved={setReminder}
+        />
+      )}
+      {isListingOpen && (
+        <AddInventoryListingModal
+          item={item}
+          onClose={() => setIsListingOpen(false)}
+          onSubmit={addToListing}
         />
       )}
     </main>

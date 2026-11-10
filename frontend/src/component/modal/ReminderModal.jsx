@@ -11,9 +11,19 @@ function localDateString(date) {
   return `${year}-${month}-${day}`
 }
 
+function isValidDateString(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split("-").map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
 function getSavedReminder(itemId) {
   try {
     const savedReminders = JSON.parse(window.localStorage.getItem(REMINDERS_STORAGE_KEY) || "{}")
+    if (!savedReminders || typeof savedReminders !== "object" || Array.isArray(savedReminders)) {
+      throw new Error("Saved inventory reminders must be an object.")
+    }
     return savedReminders[itemId] || null
   } catch (error) {
     console.error("Could not load inventory reminders:", error)
@@ -50,12 +60,22 @@ function ReminderModal({ item, onClose, onSaved }) {
   function submit(event) {
     event.preventDefault()
     const parsedStockLevel = Number(stockLevel)
-    if (!reminderDate) {
-      setError("Choose a day for this reminder.")
+    const currentStock = Number(item.quantity)
+
+    if (!isValidDateString(reminderDate)) {
+      setError("Choose a valid reminder date.")
       return
     }
-    if (!Number.isFinite(parsedStockLevel) || parsedStockLevel <= 0) {
-      setError("Enter a stock level greater than zero.")
+    if (reminderDate < localDateString(new Date())) {
+      setError("The reminder date cannot be in the past.")
+      return
+    }
+    if (!Number.isFinite(currentStock) || currentStock <= 0) {
+      setError("Current inventory stock is invalid, so a reminder cannot be set.")
+      return
+    }
+    if (!Number.isFinite(parsedStockLevel) || parsedStockLevel <= 0 || parsedStockLevel > currentStock) {
+      setError(`Enter a stock level greater than zero and no more than ${currentStock} ${item.unit}.`)
       return
     }
 
@@ -105,7 +125,13 @@ function ReminderModal({ item, onClose, onSaved }) {
             Reminder day
             <span className="inventory-reminder-field-icon">
               <CalendarDays size={15} aria-hidden="true" />
-              <input type="date" min={localDateString(new Date())} value={reminderDate} onChange={(event) => setReminderDate(event.target.value)} required />
+              <input
+                type="date"
+                min={localDateString(new Date())}
+                value={reminderDate}
+                onChange={(event) => setReminderDate(event.target.value)}
+                required
+              />
             </span>
           </label>
           <label>
@@ -114,6 +140,7 @@ function ReminderModal({ item, onClose, onSaved }) {
               <input
                 type="number"
                 min="0.01"
+                max={item.quantity}
                 step="0.01"
                 value={stockLevel}
                 onChange={(event) => setStockLevel(event.target.value)}

@@ -3,6 +3,7 @@ import { Archive, Boxes, Clock3, Filter, ImagePlus, Leaf, Plus, Search, X } from
 import { useLocation, useNavigate } from "react-router-dom"
 import InventoryCard from "../component/card/InventoryCard"
 import InventoryLogModal from "../component/modal/InventoryLogModal"
+import { CROP_SPECIALTIES } from "../data/cropSpecialties"
 import { INVENTORY_STORAGE_KEY, loadInventoryPreview } from "../data/inventory"
 import "../styles/inventory.css"
 
@@ -10,12 +11,19 @@ const UNITS = ["kg", "pieces", "heads", "sack", "liters", "bottles"]
 
 function InventoryDialog({ item, onClose, onSave }) {
   const imageInput = useRef(null)
-  const [name, setName] = useState(item?.name || "")
+  const [name, setName] = useState(() => {
+    if (!item || item.category === "supply") return item?.name || ""
+    const itemName = item.name.trim().toLocaleLowerCase()
+    return CROP_SPECIALTIES.find((crop) => {
+      const cropName = crop.toLocaleLowerCase()
+      const pluralName = `${cropName}${cropName.endsWith("o") ? "es" : "s"}`
+      return itemName === cropName || itemName === pluralName || itemName.endsWith(` ${cropName}`)
+    }) || item.name
+  })
   const [quantity, setQuantity] = useState(item?.quantity ?? "")
   const [unit, setUnit] = useState(item?.unit || "kg")
   const [category, setCategory] = useState(item?.category || "crop")
   const [harvestDate, setHarvestDate] = useState(item?.harvestDate || new Date().toISOString().slice(0, 10))
-  const [status, setStatus] = useState(item?.status || "fresh")
   const [image, setImage] = useState(item?.image || "")
   const [imageName, setImageName] = useState(item?.image ? "Current photo" : "")
   const [error, setError] = useState("")
@@ -66,7 +74,7 @@ function InventoryDialog({ item, onClose, onSave }) {
       unit,
       category,
       harvestDate,
-      status,
+      status: item?.status || "fresh",
       image,
       imageName,
       emoji: item?.emoji || (category === "supply" ? "📦" : "🥬"),
@@ -88,8 +96,16 @@ function InventoryDialog({ item, onClose, onSave }) {
         </header>
         <form className="inventory-dialog-form" onSubmit={submit}>
           <label>
-            Item name
-            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required placeholder="e.g. Lettuce" />
+            {category === "crop" ? "Crop" : "Item name"}
+            {category === "crop" ? (
+              <select value={name} onChange={(event) => setName(event.target.value)} required>
+                <option value="" disabled>Select a crop</option>
+                {name && !CROP_SPECIALTIES.includes(name) && <option value={name}>{name} (current item)</option>}
+                {CROP_SPECIALTIES.map((crop) => <option value={crop} key={crop}>{crop}</option>)}
+              </select>
+            ) : (
+              <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required placeholder="e.g. Organic fertilizer" />
+            )}
           </label>
           <div className="inventory-dialog-row">
             <label>
@@ -97,14 +113,6 @@ function InventoryDialog({ item, onClose, onSave }) {
               <select value={category} onChange={(event) => setCategory(event.target.value)}>
                 <option value="crop">Crop</option>
                 <option value="supply">Supply</option>
-              </select>
-            </label>
-            <label>
-              Status
-              <select value={status} onChange={(event) => setStatus(event.target.value)}>
-                <option value="fresh">Fresh</option>
-                <option value="near-spoiling">Near Spoiling</option>
-                <option value="spoiled">Spoiled</option>
               </select>
             </label>
           </div>
@@ -205,7 +213,10 @@ function InventoryPage() {
     const editItem = editItemId ? loadInventoryPreview().find((item) => item.id === editItemId) : null
     return editItem ? { mode: "edit", item: editItem } : null
   })
-  const [notice, setNotice] = useState("")
+  const [notice, setNotice] = useState(() => {
+    const listingNotice = location.state?.listingNotice
+    return listingNotice ? `${listingNotice.name} successfully added to listing.` : ""
+  })
   const [isInventoryLogOpen, setIsInventoryLogOpen] = useState(false)
 
   function persistInventory(nextInventory) {
@@ -274,7 +285,7 @@ function InventoryPage() {
         <section className="inventory-heading">
           <div>
             <p className="dashboard-eyebrow">Farm management</p>
-            <h1>Crop Inventory</h1>
+            <h1 className="dashboard-page-title">Crop Inventory</h1>
             <p>Track harvested crops and farm supplies, all in one place.</p>
           </div>
           <div className="inventory-heading-actions">
@@ -362,7 +373,16 @@ function InventoryPage() {
           )}
         </section>
 
-        {notice && <p className="inventory-notice" role="status">{notice}</p>}
+        {notice && (
+          <div className="inventory-notice" role="status">
+            <span>{notice}</span>
+            {location.state?.listingNotice?.listingId && (
+              <button type="button" onClick={() => navigate(`/listings/${location.state.listingNotice.listingId}`)}>
+                View Listing
+              </button>
+            )}
+          </div>
+        )}
         <p className="inventory-preview-note"><Leaf size={14} aria-hidden="true" /> Sample inventory preview</p>
       </div>
 

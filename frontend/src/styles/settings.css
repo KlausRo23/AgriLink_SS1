@@ -1,6 +1,6 @@
 .settings-page {
   min-height: 100vh;
-  background: #f7f8f3;
+  background: #f3f0e2;
   color: #26342b;
 }
 
@@ -64,9 +64,6 @@
 .settings-page-heading h1 {
   margin: 0;
   color: #26342b;
-  font-size: 1.65rem;
-  line-height: 1.2;
-  font-weight: 750;
 }
 
 .settings-page-heading p {
@@ -876,7 +873,6 @@ html[data-appearance="dark"] .history-card {
   color: #e2e9df;
 }
 
-html[data-appearance="dark"] .settings-page-heading h1,
 html[data-appearance="dark"] .settings-card-heading h2,
 html[data-appearance="dark"] .settings-profile-identity h2,
 html[data-appearance="dark"] .settings-profile-identity > span,
@@ -959,10 +955,6 @@ html[data-appearance="dark"] .settings-rsbsa-heading {
 
   .settings-page-heading {
     margin-bottom: 17px;
-  }
-
-  .settings-page-heading h1 {
-    font-size: 1.4rem;
   }
 
   .settings-tabs {

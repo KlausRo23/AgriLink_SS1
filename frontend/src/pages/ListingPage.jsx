@@ -201,11 +201,15 @@ function ListingPage() {
 
   return (
     <main className="dashboard-main listings-page">
+      <header className="dashboard-topbar">
+        <div className="dashboard-breadcrumb">Listings</div>
+        <button type="button" className="dashboard-avatar" aria-label="Account">F</button>
+      </header>
       <div className="listings-content">
       <header className="listings-heading">
         <div>
           <p className="listings-eyebrow">Farm management</p>
-          <h1>Listings</h1>
+          <h1 className="dashboard-page-title">Listings</h1>
           <p>Track the produce you’ve submitted for sale. Pending listings are waiting for review.</p>
         </div>
         <div className="listings-total">

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { DELIVERY_MODES, normalizeDeliveryModes } from "../data/deliveryModes"
 import {
   Check, CircleUserRound, CloudUpload, Edit3, ImagePlus, Leaf, LockKeyhole,
   LogOut, Moon, ShieldCheck, Sun,
@@ -60,7 +61,7 @@ const DEFAULT_SETTINGS = {
     startedFarming: "2016",
     description: "We grow fresh vegetables for our local community.",
     specialty: ["Cabbage", "Lettuce", "Corn"],
-    deliveryMode: "3rd party service",
+    deliveryMode: ["3rd party service"],
     deliverableRegions: ["ncr"],
     naturallyGrown: true,
   },
@@ -90,9 +91,9 @@ function loadSettings() {
     if (parsed.farm?.name && !parsed.farm.farmName) farm.farmName = parsed.farm.name
     if (parsed.farm?.startedYear && !parsed.farm.startedFarming) farm.startedFarming = parsed.farm.startedYear
     if (parsed.farm?.crops && !parsed.farm.specialty) farm.specialty = parsed.farm.crops
-    if (parsed.farm?.deliveryMethods && !parsed.farm.deliveryMode) {
-      farm.deliveryMode = parsed.farm.deliveryMethods.includes("Third-party courier") ? "3rd party service" : "deliver"
-    }
+    farm.deliveryMode = normalizeDeliveryModes(
+      parsed.farm?.deliveryMode ?? parsed.farm?.deliveryMethods ?? DEFAULT_SETTINGS.farm.deliveryMode,
+    )
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
@@ -260,7 +261,7 @@ function SettingPage() {
 
       <div className="settings-content">
         <header className="settings-page-heading">
-          <h1>Settings</h1>
+          <h1 className="dashboard-page-title">Settings</h1>
           <p>Manage your preferences, account and farm details.</p>
         </header>
 
@@ -493,13 +494,17 @@ function SettingPage() {
                 </SettingsCard>
 
                 <SettingsCard title="Delivery" description="Choose how you deliver and which regions you can serve.">
-                  <SettingField label="Delivery method">
-                    <select value={settings.farm.deliveryMode} onChange={(event) => updateSettings("farm", "deliveryMode", event.target.value)}>
-                      <option value="">Choose a delivery method</option>
-                      <option value="deliver">I deliver</option>
-                      <option value="3rd party service">Third-party delivery service</option>
-                    </select>
-                  </SettingField>
+                  <fieldset className="settings-choice-fieldset">
+                    <legend>Delivery methods <span>(select all that apply)</span></legend>
+                    <div className="settings-region-options">
+                      {DELIVERY_MODES.map((mode) => (
+                        <label className={settings.farm.deliveryMode.includes(mode.value) ? "is-selected" : ""} key={mode.value}>
+                          <input type="checkbox" checked={settings.farm.deliveryMode.includes(mode.value)} onChange={() => toggleFarmSelection("deliveryMode", mode.value)} />
+                          {mode.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <fieldset className="settings-choice-fieldset">
                     <legend>Delivery regions <span>(select all regions you can deliver to)</span></legend>
                     <div className="settings-region-options">

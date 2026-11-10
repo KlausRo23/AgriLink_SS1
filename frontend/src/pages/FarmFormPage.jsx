@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { CROP_SPECIALTIES } from "../data/cropSpecialties"
+import { DELIVERY_MODES } from "../data/deliveryModes"
 import "../styles/Farmerformpage.css"
 
 const REGIONS = [
@@ -21,14 +23,6 @@ const REGIONS = [
   { id: "barmm", label: "BARMM" },
 ]
 
-const SPECIALTIES = [
-  "Rice", "Corn", "Tomato", "Eggplant", "Okra", "Cabbage", "Carrot", "Onion", "Garlic", "Banana",
-  "Mango", "Papaya", "Watermelon", "Sweet Potato", "Cassava", "Ampalaya", "Sitaw", "Kangkong",
-  "Pechay", "Malunggay", "Lettuce", "Broccoli", "Cucumber", "Bell Pepper", "Chili Pepper", "Squash",
-  "Upo", "Patola", "Sayote", "Potato", "Radish", "Ginger", "Gabi", "Ube", "Peanut", "Mung Bean",
-  "Pineapple", "Calamansi", "Durian", "Lanzones", "Jackfruit", "Strawberry",
-]
-
 const REQUIRED_FIELDS = ["farmName", "location", "deliveryMode", "deliverableRegions", "description"]
 const STEPS = [
   { title: "About your farm", fields: ["farmName", "location"] },
@@ -38,7 +32,7 @@ const STEPS = [
 const EMPTY_VALUES = {
   farmName: "",
   location: "",
-  deliveryMode: "",
+  deliveryMode: [],
   deliverableRegions: [],
   startedFarming: "",
   specialty: [],
@@ -58,7 +52,7 @@ function validateField(name, value) {
         ? "Location must be 5 to 200 characters."
         : ""
     case "deliveryMode":
-      return value ? "" : "Choose a delivery method."
+      return value.length > 0 ? "" : "Choose at least one delivery method."
     case "deliverableRegions":
       return value.length > 0 ? "" : "Choose at least one delivery region."
     case "startedFarming": {
@@ -157,6 +151,17 @@ function FarmFormPage({ onSubmit }) {
     }
   }
 
+  function handleDeliveryModeChange(event) {
+    const { checked, value } = event.target
+    const deliveryModes = checked
+      ? [...values.deliveryMode, value]
+      : values.deliveryMode.filter((mode) => mode !== value)
+    setValues((prev) => ({ ...prev, deliveryMode: deliveryModes }))
+    if (touched.deliveryMode) {
+      setErrors((prev) => ({ ...prev, deliveryMode: validateField("deliveryMode", deliveryModes) }))
+    }
+  }
+
   function handleSpecialtyChange(event) {
     const { checked, value } = event.target
     setValues((prev) => ({
@@ -232,7 +237,9 @@ function FarmFormPage({ onSubmit }) {
   function buildFormData() {
     const formData = new FormData()
     for (const [name, value] of Object.entries(values)) {
-      if (name === "deliverableRegions") {
+      if (name === "deliveryMode") {
+        value.forEach((mode) => formData.append(name, mode))
+      } else if (name === "deliverableRegions") {
         value.forEach((region) => formData.append(name, region))
       } else if (name === "specialty") {
         value.forEach((crop) => formData.append(name, crop))
@@ -456,7 +463,7 @@ function FarmFormPage({ onSubmit }) {
             <div className="ff-span-2">
               <Field id="specialty" label="Crops and specialties" optional hint="Select all that apply.">
                 <div id="specialty" className="ff-specialty-options" role="group" aria-labelledby="specialty-label">
-                  {SPECIALTIES.map((crop) => {
+                  {CROP_SPECIALTIES.map((crop) => {
                     const selected = values.specialty.includes(crop)
                     return (
                       <label className="ff-specialty-option" data-selected={selected} key={crop}>
@@ -479,20 +486,29 @@ function FarmFormPage({ onSubmit }) {
           </Section>
 
           <Section title="Delivery" description="Choose how you deliver and which regions you can serve." step={2} activeStep={activeStep}>
-            <Field id="deliveryMode" label="Delivery method" error={showError("deliveryMode")}>
-              <select
+            <Field id="deliveryMode" label="Delivery methods" hint="Select all ways you can deliver." error={showError("deliveryMode")}>
+              <div
                 id="deliveryMode"
-                name="deliveryMode"
-                className="ff-input ff-select"
-                value={values.deliveryMode}
-                onChange={handleChange}
-                onBlur={handleBlur}
+                className="ff-region-list"
+                role="group"
+                aria-labelledby="deliveryMode-label"
                 aria-invalid={Boolean(showError("deliveryMode"))}
               >
-                <option value="">Choose a delivery method</option>
-                <option value="deliver">I deliver</option>
-                <option value="3rd party service">Third-party delivery service</option>
-              </select>
+                {DELIVERY_MODES.map((mode) => (
+                  <label className="ff-region-option" key={mode.value}>
+                    <input
+                      type="checkbox"
+                      name="deliveryMode"
+                      value={mode.value}
+                      checked={values.deliveryMode.includes(mode.value)}
+                      onChange={handleDeliveryModeChange}
+                      aria-invalid={Boolean(showError("deliveryMode"))}
+                      aria-describedby={showError("deliveryMode") ? "deliveryMode-error" : "deliveryMode-hint"}
+                    />
+                    <span>{mode.label}</span>
+                  </label>
+                ))}
+              </div>
             </Field>
             <div className="ff-span-2">
               <Field id="deliverableRegions" label="Delivery regions" hint="Select all regions you can deliver to." error={showError("deliverableRegions")}>

@@ -1,7 +1,7 @@
 const DAY_IN_MS = 24 * 60 * 60 * 1000
 const READY_WINDOW_DAYS = 7
 
-function getDayDifference(value) {
+export function getDaysUntilDate(value) {
   if (!value) return null
   const date = new Date(`${value}T00:00:00`)
   if (Number.isNaN(date.getTime())) return null
@@ -13,7 +13,7 @@ function getDayDifference(value) {
 }
 
 export function getCropLifecycleStatus(crop) {
-  const daysUntilHarvest = getDayDifference(crop.harvestDate)
+  const daysUntilHarvest = getDaysUntilDate(crop.harvestDate)
   if (daysUntilHarvest === null) return "growing"
   if (daysUntilHarvest < 0) return "overdue"
   if (daysUntilHarvest <= READY_WINDOW_DAYS) return "ready-to-harvest"
@@ -21,7 +21,7 @@ export function getCropLifecycleStatus(crop) {
 }
 
 export function getCropSpoilageStatus(crop) {
-  const daysUntilSellBy = getDayDifference(crop.sellDate)
+  const daysUntilSellBy = getDaysUntilDate(crop.sellDate)
   if (daysUntilSellBy === null || daysUntilSellBy > READY_WINDOW_DAYS) return null
   return daysUntilSellBy < 0 ? "overdue" : "near-overdue"
 }

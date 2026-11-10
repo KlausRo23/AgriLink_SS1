@@ -2,10 +2,21 @@
   min-height: 100vh;
 }
 
+.crop-detail-page .dashboard-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.crop-detail-page .dashboard-breadcrumb span {
+  color: #a0a895;
+  font-weight: 500;
+}
+
 .crop-detail-content {
-  width: min(100%, 1120px);
-  margin: 0 auto;
-  padding: 22px clamp(18px, 4vw, 46px) 42px;
+  width: 100%;
+  padding: 22px clamp(20px, 4vw, 48px) 42px;
 }
 
 .crop-detail-back {
@@ -104,20 +115,67 @@
   line-height: 1;
 }
 
+.crop-detail-actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.crop-detail-edit-button,
+.crop-detail-archive-button,
 .crop-detail-harvest-button {
   display: inline-flex;
   min-height: 42px;
-  flex: 0 0 auto;
+  width: 124px;
+  flex: 0 0 124px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 14px;
+  gap: 6px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.crop-detail-edit-button,
+.crop-detail-archive-button {
+  border: 1px solid #d5decd;
+  border-radius: 9px;
+  background: #f7f9f2;
+  color: #526647;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.crop-detail-edit-button:hover,
+.crop-detail-archive-button:hover {
+  transform: translateY(-1px);
+}
+
+.crop-detail-edit-button:hover {
+  background: #eaf0e3;
+}
+
+.crop-detail-archive-button {
+  border-color: #ead8d1;
+  background: #fff8f5;
+  color: #9c5144;
+}
+
+.crop-detail-archive-button:hover {
+  background: #fbe9e4;
+}
+
+.crop-detail-harvest-button {
   border: 0;
   border-radius: 9px;
   background: #bd6c1d;
   color: #fff;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.15s ease;
@@ -140,6 +198,10 @@
   color: #647d52;
   font-size: 0.73rem;
   line-height: 1.4;
+}
+
+.crop-harvest-preview-message.is-error {
+  color: #a94339;
 }
 
 .crop-detail-tags {
@@ -170,6 +232,21 @@
   color: #47733c;
 }
 
+.crop-detail-tag.status-ready-to-harvest {
+  background: #fff0ce;
+  color: #94650f;
+}
+
+.crop-detail-tag.status-overdue {
+  background: #fbe4df;
+  color: #ad4539;
+}
+
+.crop-detail-tag.status-harvested {
+  background: #e6eddd;
+  color: #536946;
+}
+
 .crop-detail-tag.status-near-spoiling {
   background: #fff0ce;
   color: #94650f;
@@ -182,7 +259,7 @@
 
 .crop-metric-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -875,6 +952,8 @@
 }
 
 .crop-detail-back:focus-visible,
+.crop-detail-edit-button:focus-visible,
+.crop-detail-archive-button:focus-visible,
 .crop-detail-harvest-button:focus-visible,
 .crop-calendar-toolbar button:focus-visible,
 .crop-calendar-day:focus-visible,
@@ -915,14 +994,21 @@
     align-items: flex-start;
   }
 
-  .crop-detail-title-row h1 {
-    font-size: 2rem;
+  .crop-detail-actions {
+    gap: 5px;
   }
 
+  .crop-detail-edit-button,
+  .crop-detail-archive-button,
   .crop-detail-harvest-button {
+    width: 116px;
     min-height: 38px;
-    padding: 0 10px;
-    font-size: 0.7rem;
+    flex-basis: 116px;
+    font-size: 0.66rem;
+  }
+
+  .crop-detail-title-row h1 {
+    font-size: 2rem;
   }
 
   .crop-metric-grid {
@@ -1027,8 +1113,11 @@
     flex-direction: column;
   }
 
-  .crop-detail-harvest-button {
-    align-self: stretch;
+  .crop-detail-actions {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .crop-calendar-cell {
@@ -1055,6 +1144,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .crop-detail-harvest-button,
+  .crop-detail-edit-button,
+  .crop-detail-archive-button,
   .crop-growth-track span,
   .crop-calendar-day,
   .crop-activity-option,

@@ -7,7 +7,7 @@
 .inbox-content {
   width: min(1500px, 100%);
   margin: 0 auto;
-  padding: 22px clamp(18px, 3vw, 36px) 25px;
+  padding: 22px clamp(20px, 4vw, 48px) 25px;
 }
 
 .inbox-page-heading {
@@ -21,9 +21,6 @@
 .inbox-page-heading h1 {
   margin: 0;
   color: #b98b19;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.45rem, 2.3vw, 1.85rem);
-  font-weight: 600;
 }
 
 .inbox-page-heading > div > p:last-child {
@@ -140,14 +137,22 @@
   display: flex;
   min-height: 39px;
   align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 16px;
   padding: 0 14px;
   border-bottom: 1px solid #efefe9;
+  scrollbar-width: none;
+}
+
+.inbox-filters::-webkit-scrollbar {
+  display: none;
 }
 
 .inbox-filters button {
   position: relative;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 5px;
   padding: 0 1px;
@@ -189,6 +194,11 @@
 .inbox-conversation-list {
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.inbox-conversation-list::-webkit-scrollbar {
+  display: none;
 }
 
 .inbox-conversation-card {
@@ -1556,10 +1566,6 @@ html[data-appearance="dark"] .inbox-composer input {
 }
 
 @media (max-width: 860px) {
-  .inbox-content {
-    padding: 20px 16px 25px;
-  }
-
   .inbox-workspace {
     min-height: 540px;
     grid-template-columns: minmax(225px, 0.9fr) minmax(0, 1.35fr);
@@ -1588,9 +1594,16 @@ html[data-appearance="dark"] .inbox-composer input {
   }
 }
 
+@media (max-width: 720px) {
+  .inbox-content {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}
+
 @media (max-width: 620px) {
   .inbox-content {
-    padding: 17px 12px 22px;
+    padding: 17px 18px 22px;
   }
 
   .inbox-page-heading {

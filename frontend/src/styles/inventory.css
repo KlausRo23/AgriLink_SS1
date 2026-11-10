@@ -5,7 +5,7 @@
 .inventory-content {
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 22px clamp(18px, 3vw, 38px) 40px;
+  padding: 22px clamp(20px, 4vw, 48px) 40px;
 }
 
 .inventory-heading {
@@ -23,9 +23,6 @@
 .inventory-heading h1 {
   margin: 0;
   color: #665c24;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.65rem, 3vw, 2rem);
-  font-weight: 500;
 }
 
 .inventory-heading p:last-child {
@@ -577,7 +574,7 @@
   background: #edf2e8;
   color: #4b6337;
   font: inherit;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
@@ -661,9 +658,32 @@
 }
 
 .inventory-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 12px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #dfe8d7;
+  border-radius: 9px;
+  background: #f3f7ef;
   color: #54713c;
   font-size: 0.75rem;
+}
+
+.inventory-notice button {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4b6337;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inventory-notice button:hover {
+  text-decoration: underline;
 }
 
 .inventory-preview-note {
@@ -757,7 +777,8 @@
 }
 
 .inventory-dialog-form input,
-.inventory-dialog-form select {
+.inventory-dialog-form select,
+.inventory-dialog-form textarea {
   width: 100%;
   min-height: 39px;
   padding: 8px 10px;
@@ -770,8 +791,14 @@
   font-size: 0.78rem;
 }
 
+.inventory-dialog-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
 .inventory-dialog-form input:focus,
-.inventory-dialog-form select:focus {
+.inventory-dialog-form select:focus,
+.inventory-dialog-form textarea:focus {
   border-color: #83966f;
   box-shadow: 0 0 0 3px rgba(112, 135, 93, 0.12);
 }
@@ -1032,9 +1059,9 @@
   border: 0;
   background: transparent;
   color: #526642;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 650;
+  font-family: var(--font-body, "Outfit", "Segoe UI", sans-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1045,7 +1072,8 @@
 .inventory-detail-breadcrumb {
   margin-bottom: 12px;
   color: #818a78;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
+  font-weight: 500;
 }
 
 .inventory-detail-breadcrumb span {
@@ -1220,13 +1248,14 @@
 .inventory-detail-panel-heading h2 {
   margin: 0;
   color: #465a38;
-  font-size: 0.86rem;
+  font-size: 0.94rem;
+  font-weight: 650;
 }
 
 .inventory-detail-panel-heading p {
   margin: 3px 0 0;
   color: #89917f;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
 }
 
 .inventory-detail-timeline {
@@ -1263,12 +1292,13 @@
 
 .inventory-detail-timeline strong {
   color: #536247;
-  font-size: 0.72rem;
+  font-size: 0.77rem;
+  font-weight: 600;
 }
 
 .inventory-detail-timeline time {
   color: #89917f;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
 }
 
 .inventory-detail-saved-reminder,
@@ -1278,7 +1308,7 @@
   gap: 8px;
   margin: 16px 0 0;
   color: #718366;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   line-height: 1.5;
 }
 
@@ -1302,7 +1332,7 @@
   background: transparent;
   color: #4b6337;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1421,7 +1451,7 @@
   border-radius: 8px;
   background: #f3f6ee;
   color: #485c3a;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1648,7 +1678,7 @@
 
 @media (max-width: 720px) {
   .inventory-content {
-    padding: 17px 14px 30px;
+    padding: 17px 18px 30px;
   }
 
   .inventory-heading {
@@ -1702,8 +1732,8 @@
 
 @media (max-width: 460px) {
   .inventory-content {
-    padding-right: 11px;
-    padding-left: 11px;
+    padding-right: 18px;
+    padding-left: 18px;
   }
 
   .inventory-heading-actions {
@@ -1971,7 +2001,9 @@
 }
 
 .inventory-detail-content {
-  max-width: 1180px;
+  width: 100%;
+  max-width: none;
+  font-family: var(--font-body, "Outfit", "Segoe UI", sans-serif);
 }
 
 .inventory-detail-overview {
@@ -2023,8 +2055,8 @@
   align-items: center;
   gap: 6px;
   color: #7c896d;
-  font-size: 0.7rem;
-  font-weight: 650;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -2034,9 +2066,10 @@
   margin: 7px 0 10px;
   color: #405536;
   font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.7rem, 4vw, 2.45rem);
+  font-size: clamp(2rem, 4vw, 2.7rem);
   font-weight: 600;
-  line-height: 1.08;
+  font-style: normal;
+  line-height: 1.1;
   text-transform: capitalize;
 }
 
@@ -2049,7 +2082,7 @@
   border-radius: 999px;
   background: #e8f1e2;
   color: #4b683b;
-  font-size: 0.67rem;
+  font-size: 0.74rem;
   font-weight: 700;
 }
 
@@ -2081,8 +2114,8 @@
 .inventory-detail-product-info > p {
   margin: 9px 0 0;
   color: #7e8875;
-  font-size: 0.77rem;
-  line-height: 1.5;
+  font-size: 0.84rem;
+  line-height: 1.55;
 }
 
 .inventory-detail-edit-link {
@@ -2095,7 +2128,7 @@
   background: transparent;
   color: #536a3e;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2121,14 +2154,14 @@
   align-items: center;
   gap: 7px;
   color: #596e48;
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
 .inventory-detail-stock-card > p {
   margin: 20px 0 2px;
   color: #77836d;
-  font-size: 0.69rem;
+  font-size: 0.74rem;
 }
 
 .inventory-detail-stock-card > strong {
@@ -2155,18 +2188,30 @@
   background: #d7e0ce;
 }
 
-.inventory-detail-threshold {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #597348;
-  font-size: 0.69rem;
-  font-weight: 650;
+.inventory-detail-topbar .inventory-detail-account {
+  margin-left: auto;
 }
 
-.inventory-detail-threshold.is-unset {
-  color: #818a78;
-  font-weight: 500;
+.inventory-detail-listing-link {
+  display: inline-flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  padding: 0 11px;
+  border: 1px solid #cbd9bf;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b6337;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inventory-detail-listing-link:hover {
+  background: #f3f7ef;
 }
 
 .inventory-detail-facts {
@@ -2200,16 +2245,22 @@
 
 .inventory-detail-facts span {
   color: #89917f;
-  font-size: 0.64rem;
+  font-size: 0.71rem;
+  font-weight: 500;
 }
 
 .inventory-detail-facts strong {
   overflow: hidden;
   margin-top: 3px;
   color: #526642;
-  font-size: 0.72rem;
+  font-size: 0.79rem;
+  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.inventory-detail-facts--supply {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .inventory-detail-lower-grid {
@@ -2239,6 +2290,9 @@
   border-radius: 8px;
   background: #edf2e8;
   color: #4b6337;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
@@ -2286,8 +2340,8 @@
     display: none;
   }
 
-  .inventory-detail-threshold {
-    margin-top: 4px;
+  .inventory-detail-listing-link {
+    grid-column: 1 / -1;
   }
 }
 
@@ -2326,17 +2380,17 @@
 
   .inventory-detail-product-info h1 {
     margin-top: 5px;
-    font-size: 1.45rem;
+    font-size: 1.65rem;
   }
 
   .inventory-detail-product-info > p {
     margin-top: 7px;
-    font-size: 0.69rem;
+    font-size: 0.76rem;
   }
 
   .inventory-detail-edit-link {
     margin-top: 10px;
-    font-size: 0.66rem;
+    font-size: 0.72rem;
   }
 
   .inventory-detail-facts {

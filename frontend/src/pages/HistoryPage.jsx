@@ -14,6 +14,8 @@ const ACTION_FILTERS = [
   { value: "harvested", label: "Harvested", Icon: Sprout },
 ]
 
+const SAVED_CROPS_KEY = "agrilink-crops-preview"
+
 const INITIAL_HISTORY = [
   { id: "history-1", action: "harvested", name: "Tomato", itemType: "Crop", detail: "120 kg harvested", createdAt: "2026-10-26T09:12:00" },
   { id: "history-2", action: "restored", name: "Rice", itemType: "Crop", detail: "Returned from archive", createdAt: "2026-09-24T17:07:00" },
@@ -28,8 +30,20 @@ const INITIAL_HISTORY = [
   { id: "history-11", action: "deleted", name: "Old fertilizer", itemType: "Supply", detail: "Permanently removed", createdAt: "2026-09-22T11:24:00" },
 ]
 
+function loadArchivedCrops() {
+  try {
+    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
+    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
+    return savedCrops.filter((crop) => crop?.archived === true && crop.deleted !== true)
+  } catch (error) {
+    console.error("Could not load archived crops:", error)
+    return []
+  }
+}
+
 function HistoryPage() {
-  const [history, setHistory] = useState(INITIAL_HISTORY)
+  const [history] = useState(INITIAL_HISTORY)
+  const [archivedCrops, setArchivedCrops] = useState(loadArchivedCrops)
   const [actionFilter, setActionFilter] = useState("all")
   const [itemType, setItemType] = useState("all")
   const [sortOrder, setSortOrder] = useState("newest")
@@ -47,15 +61,26 @@ function HistoryPage() {
         : new Date(a.createdAt) - new Date(b.createdAt))
   }, [actionFilter, history, itemType, search, sortOrder])
 
-  function recordRestoredItem(item) {
-    setHistory((current) => [{
-      id: `history-${Date.now()}`,
-      action: "restored",
-      name: item.name,
-      itemType: item.itemType,
-      detail: "Returned from archive",
-      createdAt: new Date().toISOString(),
-    }, ...current])
+  function restoreArchivedCrop(item) {
+    if (!item.isPersistedCrop) return
+    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
+    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
+    const crop = savedCrops.find((entry) => entry.id === item.id && entry.archived === true)
+    if (!crop) throw new Error("This crop is no longer archived. Refresh and try again.")
+    const restoredCrop = { ...crop, archived: false }
+    delete restoredCrop.archivedAt
+    window.localStorage.setItem(SAVED_CROPS_KEY, JSON.stringify(savedCrops.map((entry) => entry.id === item.id ? restoredCrop : entry)))
+    setArchivedCrops((current) => current.filter((entry) => entry.id !== item.id))
+  }
+
+  function deleteArchivedCrop(item) {
+    const savedCrops = JSON.parse(window.localStorage.getItem(SAVED_CROPS_KEY) || "[]")
+    if (!Array.isArray(savedCrops)) throw new Error("Saved crop preview data is invalid.")
+    const crop = savedCrops.find((entry) => entry.id === item.id && entry.archived === true)
+    if (!crop) throw new Error("This crop is no longer archived. Refresh and try again.")
+    const deletedCrop = { id: crop.id, name: crop.name, deleted: true, deletedAt: new Date().toISOString() }
+    window.localStorage.setItem(SAVED_CROPS_KEY, JSON.stringify(savedCrops.map((entry) => entry.id === item.id ? deletedCrop : entry)))
+    setArchivedCrops((current) => current.filter((entry) => entry.id !== item.id))
   }
 
   return (
@@ -69,7 +94,7 @@ function HistoryPage() {
         <header className="history-heading">
           <div>
             <p className="dashboard-eyebrow">Farm activity</p>
-            <h1>History</h1>
+            <h1 className="dashboard-page-title">History</h1>
             <p>A record of your farm changes, harvests, and archived items. History entries cannot be changed.</p>
           </div>
           <button type="button" className="history-archive-button" onClick={() => setIsArchiveOpen(true)}>
@@ -133,7 +158,9 @@ function HistoryPage() {
       <ArchiveModal
         isOpen={isArchiveOpen}
         onClose={() => setIsArchiveOpen(false)}
-        onRestore={recordRestoredItem}
+        onRestore={restoreArchivedCrop}
+        onDelete={deleteArchivedCrop}
+        archivedCrops={archivedCrops}
       />
     </main>
   )

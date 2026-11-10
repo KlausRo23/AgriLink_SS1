@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, Camera, Check, Clock3, Droplets, Leaf, Scissors, Sprout, SprayCan, X } from "lucide-react"
+import { Archive, ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, Camera, Check, Clock3, Droplets, Leaf, Pencil, Scissors, Sprout, SprayCan, X } from "lucide-react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
+import CropManagementModal from "../component/modal/CropManagementModal"
 import RecordHarvestModal from "../component/modal/RecordHarvestModal"
 import WarningModal from "../component/modal/WarningModal"
+import { updateSavedCrops } from "../data/crops"
+import { loadListings, saveListings } from "../data/listings"
+import { getCropLifecycleStatus } from "../utils/cropLifecycle"
 import "../styles/crop-detail.css"
 
 const ACTIONS = [
@@ -54,7 +58,7 @@ function CropDetailPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const crop = location.state?.crop || { ...DEMO_CROP, id: id || DEMO_CROP.id }
+  const [crop, setCrop] = useState(() => location.state?.crop || { ...DEMO_CROP, id: id || DEMO_CROP.id })
   const today = new Date()
   const plantedDate = asDate(crop.datePlanted, asDate(crop.harvestDate, DEMO_CROP.datePlanted && new Date(DEMO_CROP.datePlanted)))
   const estimatedHarvest = asDate(crop.harvestDate, new Date(plantedDate.getTime() + 70 * 86400000))
@@ -73,6 +77,9 @@ function CropDetailPage() {
   const [isEarlyHarvestWarningOpen, setIsEarlyHarvestWarningOpen] = useState(false)
   const [pendingHarvest, setPendingHarvest] = useState(null)
   const [harvestRecord, setHarvestRecord] = useState(null)
+  const [harvestError, setHarvestError] = useState("")
+  const [cropDialog, setCropDialog] = useState(null)
+  const [cropStorageError, setCropStorageError] = useState("")
   const photoInput = useRef(null)
 
   const ageDays = Math.max(0, Math.floor((today - plantedDate) / 86400000))
@@ -94,8 +101,13 @@ function CropDetailPage() {
   const monthLabel = new Intl.DateTimeFormat("en-PH", { month: "long", year: "numeric" }).format(calendarMonth)
   const activities = selectedDate ? activityByDate[dayKey(selectedDate)] || [] : []
   const isSelectedToday = selectedDate && dayKey(selectedDate) === dayKey(today)
-  const cropStatus = crop.status || crop.displayStatus || "growing"
-  const isHarvested = Boolean(harvestRecord) || cropStatus === "harvested"
+  const savedCropStatus = crop.status || crop.displayStatus || "growing"
+  const isHarvested = Boolean(harvestRecord) || savedCropStatus === "harvested"
+  const cropStatus = isHarvested ? "harvested" : getCropLifecycleStatus(crop)
+  const cropStatusLabel = {
+    "ready-to-harvest": "Ready to harvest",
+    overdue: "Overdue",
+  }[cropStatus] || cropStatus
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 720px)")
@@ -130,6 +142,39 @@ function CropDetailPage() {
 
   function changeMonth(amount) {
     setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + amount, 1))
+  }
+
+  function saveCrop(updatedCrop) {
+    try {
+      updateSavedCrops((savedCrops) => savedCrops.some((entry) => entry.id === updatedCrop.id)
+        ? savedCrops.map((entry) => entry.id === updatedCrop.id ? updatedCrop : entry)
+        : [...savedCrops, updatedCrop])
+      setCrop(updatedCrop)
+      setCropDialog(null)
+      setCropStorageError("")
+      return true
+    } catch (error) {
+      console.error("Could not save crop changes:", error)
+      setCropStorageError("Could not save this crop. Check browser storage and try again.")
+      return false
+    }
+  }
+
+  function archiveCrop(selectedCrop) {
+    const archivedCrop = { ...selectedCrop, archived: true, archivedAt: new Date().toISOString() }
+    try {
+      updateSavedCrops((savedCrops) => savedCrops.some((entry) => entry.id === selectedCrop.id)
+        ? savedCrops.map((entry) => entry.id === selectedCrop.id ? archivedCrop : entry)
+        : [...savedCrops, archivedCrop])
+      setCropDialog(null)
+      setCropStorageError("")
+      navigate("/crops")
+      return true
+    } catch (error) {
+      console.error("Could not archive crop:", error)
+      setCropStorageError("Could not archive this crop. Check browser storage and try again.")
+      return false
+    }
   }
 
   function selectDay(day) {
@@ -208,19 +253,55 @@ function CropDetailPage() {
   }
 
   function recordHarvest(data) {
-    setHarvestRecord({ ...data, harvestedAt: new Date() })
+    const harvestedAt = new Date()
+    if (data.autoListing) {
+      const listedDate = dayKey(harvestedAt)
+      const sellByDate = new Date(harvestedAt)
+      sellByDate.setDate(sellByDate.getDate() + data.shelfLifeDays)
+      const listing = {
+        id: `harvest-${crypto.randomUUID()}`,
+        sourceCropId: crop.id,
+        name: crop.name,
+        description: data.notes || `Freshly harvested ${crop.name.toLowerCase()}, available now.`,
+        seller: crop.farmName || "Your farm",
+        region: crop.region || "Local farm",
+        price: data.listingPrice,
+        stock: data.quantity,
+        unit: data.unit,
+        listedDate,
+        harvestDate: listedDate,
+        sellByDate: dayKey(sellByDate),
+        shelfLifeDays: data.shelfLifeDays,
+        status: "pending",
+        category: crop.category || "Fresh produce",
+        details: data.notes || `Harvested directly from the farm on ${formatLongDate(harvestedAt)}.`,
+        imageUrl: data.photoPreview || crop.image || "",
+        emoji: crop.emoji || "🌿",
+        visual: crop.visual || "leafy",
+      }
+      const listings = loadListings()
+      if (!saveListings([...listings, listing])) {
+        setHarvestError("Could not save this listing in the browser. Check storage permissions and try again.")
+        return false
+      }
+    }
+
+    setHarvestRecord({ ...data, harvestedAt })
     setPendingHarvest(null)
     setIsEarlyHarvestWarningOpen(false)
     setIsHarvestModalOpen(false)
+    setHarvestError("")
+    return true
   }
 
   function submitHarvest(data) {
+    setHarvestError("")
     if (daysToHarvest > 0) {
       setPendingHarvest(data)
       setIsEarlyHarvestWarningOpen(true)
-      return
+      return true
     }
-    recordHarvest(data)
+    return recordHarvest(data)
   }
 
   return (
@@ -253,28 +334,34 @@ function CropDetailPage() {
                 <p className="dashboard-eyebrow">{crop.category || "Crop"} details</p>
                 <h1>{crop.name}</h1>
               </div>
-              <button
-                type="button"
-                className="crop-detail-harvest-button"
-                onClick={() => setIsHarvestModalOpen(true)}
-                disabled={isHarvested}
-              >
-                <Sprout size={17} aria-hidden="true" /> {isHarvested ? "Harvest recorded" : "Record harvest"}
-              </button>
+              <div className="crop-detail-actions">
+                <button type="button" className="crop-detail-edit-button" onClick={() => setCropDialog({ mode: "edit", crop })}>
+                  <Pencil size={15} aria-hidden="true" /> Edit
+                </button>
+                <button type="button" className="crop-detail-archive-button" onClick={() => setCropDialog({ mode: "archive", crop })}>
+                  <Archive size={15} aria-hidden="true" /> Archive
+                </button>
+                <button
+                  type="button"
+                  className="crop-detail-harvest-button"
+                  onClick={() => setIsHarvestModalOpen(true)}
+                  disabled={isHarvested}
+                >
+                  <Sprout size={17} aria-hidden="true" /> {isHarvested ? "Harvest recorded" : "Record harvest"}
+                </button>
+              </div>
             </div>
-            {harvestRecord && <p className="crop-harvest-preview-message" role="status">Harvest recorded in this preview. Inventory is not connected.</p>}
+            {harvestError && <p className="crop-harvest-preview-message is-error" role="alert">{harvestError}</p>}
+            {cropStorageError && <p className="crop-harvest-preview-message is-error" role="alert">{cropStorageError}</p>}
+            {harvestRecord && <p className="crop-harvest-preview-message" role="status">{harvestRecord.autoListing ? "Harvest recorded and added to Listings for review." : "Harvest recorded in this preview. Inventory is not connected."}</p>}
             <div className="crop-detail-tags">
               {crop.isOrganic && <span className="crop-detail-tag organic"><Check size={12} /> Organic</span>}
-              <span className={`crop-detail-tag status-${isHarvested ? "harvested" : cropStatus}`}>{isHarvested ? "harvested" : cropStatus}</span>
+              <span className={`crop-detail-tag status-${cropStatus}`}>{cropStatusLabel}</span>
             </div>
           </div>
         </section>
 
         <section className="crop-metric-grid" aria-label="Crop metrics">
-          <article className="crop-metric-card">
-            <span>Seedlings</span>
-            <strong>{crop.seedlings ?? crop.quantity ?? "—"}</strong>
-          </article>
           <article className="crop-metric-card">
             <span>Age</span>
             <strong>{ageDays} <small>days</small></strong>
@@ -444,12 +531,21 @@ function CropDetailPage() {
           </div>
         </section>
       </div>
+      <CropManagementModal
+        key={`${cropDialog?.mode}-${cropDialog?.crop?.id}`}
+        crop={cropDialog?.crop}
+        mode={cropDialog?.mode}
+        onClose={() => setCropDialog(null)}
+        onSave={saveCrop}
+        onArchive={archiveCrop}
+      />
       {isHarvestModalOpen && (
         <RecordHarvestModal
           open={isHarvestModalOpen}
           crop={crop}
           onClose={() => setIsHarvestModalOpen(false)}
           onSubmit={submitHarvest}
+          errorMessage={harvestError}
         />
       )}
       <WarningModal

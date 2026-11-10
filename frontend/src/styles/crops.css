@@ -13,10 +13,6 @@
 .crop-page-heading h1 {
   margin: 0;
   color: #b58516;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.7rem, 3vw, 2.15rem);
-  font-weight: 500;
-  line-height: 1.15;
   text-transform: capitalize;
 }
 
@@ -133,7 +129,7 @@
   border-radius: 15px;
   background: #fff;
   box-shadow: 0 3px 8px rgba(48, 62, 39, 0.07);
-  outline: none;
+  cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -239,7 +235,7 @@
 .crop-status-badge {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   display: inline-flex;
   min-height: 24px;
   align-items: center;
@@ -264,59 +260,103 @@
   color: #b33e34;
 }
 
-.crop-card-actions {
+.crop-card-menu {
   position: absolute;
+  z-index: 4;
+  top: 9px;
   right: 9px;
-  bottom: 9px;
-  display: flex;
-  gap: 7px;
+}
+
+.crop-card-menu-trigger {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #495b3d;
+  box-shadow: 0 2px 8px rgba(27, 38, 21, 0.14);
+  cursor: pointer;
   opacity: 0;
   pointer-events: none;
   transform: translateY(5px);
-  transition: opacity 0.17s ease, transform 0.17s ease;
+  transition: opacity 0.17s ease, transform 0.17s ease, background-color 0.17s ease;
 }
 
-.crop-card:hover .crop-card-actions,
-.crop-card:focus-within .crop-card-actions,
-.crop-card:focus-visible .crop-card-actions {
+.crop-card:hover .crop-card-menu-trigger,
+.crop-card:focus-within .crop-card-menu-trigger,
+.crop-card-menu.is-open .crop-card-menu-trigger,
+.crop-card-menu-trigger:focus-visible {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
 }
 
-.crop-action-button {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 50%;
+.crop-card-menu-trigger:hover,
+.crop-card-menu-trigger[aria-expanded="true"] {
+  background: #f0f4eb;
+}
+
+.crop-card-menu-list {
+  position: absolute;
+  right: 0;
+  top: 39px;
+  display: flex;
+  width: 148px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid #e1e6da;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(31, 43, 26, 0.17);
+}
+
+.crop-card-menu-list button {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #4d5e41;
+  font: inherit;
+  font-size: 0.7rem;
+  text-align: left;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(24, 35, 18, 0.15);
-  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
-.crop-action-button:hover {
-  transform: scale(1.08);
+.crop-card-menu-list button:hover {
+  background: #f1f4ec;
 }
 
-.crop-action-edit {
-  background: #526b3a;
-  color: #fff;
+.crop-card-menu-list button.is-danger {
+  color: #a9473c;
 }
 
-.crop-action-edit:hover {
-  background: #3f552e;
+.crop-card-menu-list button.is-danger:hover {
+  background: #fff0ed;
 }
 
-.crop-action-delete {
-  border-color: #eea59a;
-  background: #fff1ef;
-  color: #c24e40;
+.crop-card-open {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
-.crop-action-delete:hover {
-  background: #ffded9;
+.crop-card-open:focus-visible {
+  outline: 3px solid #b79227;
+  outline-offset: -4px;
 }
 
 .crop-card-content {
@@ -405,14 +445,14 @@
   font: inherit;
   font-size: 0.73rem;
   font-weight: 700;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .crop-view-button svg {
   transition: transform 0.15s ease;
 }
 
-.crop-view-button:hover svg {
+.crop-card:hover .crop-view-button svg {
   transform: translateX(3px);
 }
 
@@ -446,7 +486,7 @@
   font-size: 0.8rem;
 }
 
-.spoilage-modal-backdrop {
+.progress-modal-backdrop {
   position: fixed;
   z-index: 110;
   inset: 0;
@@ -458,7 +498,7 @@
   backdrop-filter: blur(3px);
 }
 
-.spoilage-modal {
+.progress-modal {
   width: min(100%, 600px);
   max-height: min(740px, calc(100vh - 40px));
   overflow: hidden;
@@ -468,7 +508,7 @@
   box-shadow: 0 25px 70px rgba(20, 32, 18, 0.3);
 }
 
-.spoilage-modal-header {
+.progress-modal-header {
   display: flex;
   align-items: flex-start;
   gap: 13px;
@@ -477,7 +517,7 @@
   color: #fff;
 }
 
-.spoilage-modal-icon {
+.progress-modal-icon {
   display: grid;
   width: 40px;
   height: 40px;
@@ -488,12 +528,12 @@
   color: #f2d879;
 }
 
-.spoilage-modal-header > div:nth-child(2) {
+.progress-modal-header > div:nth-child(2) {
   flex: 1;
   min-width: 0;
 }
 
-.spoilage-modal-eyebrow {
+.progress-modal-eyebrow {
   margin: 0 0 4px;
   color: #c9d8c8;
   font-size: 0.66rem;
@@ -502,7 +542,7 @@
   text-transform: uppercase;
 }
 
-.spoilage-modal-header h2 {
+.progress-modal-header h2 {
   margin: 0;
   color: #fff;
   font-family: var(--font-display, Georgia, serif);
@@ -510,26 +550,26 @@
   font-weight: 500;
 }
 
-.spoilage-modal-header > div:nth-child(2) > p:last-child {
+.progress-modal-header > div:nth-child(2) > p:last-child {
   margin: 5px 0 0;
   color: #d1dfd0;
   font-size: 0.77rem;
   line-height: 1.45;
 }
 
-.spoilage-modal-header .crop-dialog-close {
+.progress-modal-header .crop-dialog-close {
   flex: 0 0 auto;
   background: rgba(255, 255, 255, 0.13);
   color: #fff;
 }
 
-.spoilage-modal-content {
+.progress-modal-content {
   max-height: calc(min(740px, 100vh - 40px) - 105px);
   overflow-y: auto;
   padding: 16px 20px 20px;
 }
 
-.spoilage-list {
+.progress-list {
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -538,7 +578,7 @@
   list-style: none;
 }
 
-.spoilage-list-item {
+.progress-list-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -549,7 +589,7 @@
   background: #fff;
 }
 
-.spoilage-list-status {
+.progress-list-status {
   min-width: 86px;
   padding: 6px 8px;
   border-radius: 999px;
@@ -560,12 +600,12 @@
   text-align: center;
 }
 
-.spoilage-list-item--overdue .spoilage-list-status {
+.progress-list-item--overdue .progress-list-status {
   background: #fde7e3;
   color: #b44439;
 }
 
-.spoilage-list-details {
+.progress-list-details {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -573,7 +613,7 @@
   gap: 3px;
 }
 
-.spoilage-list-details strong {
+.progress-list-details strong {
   overflow: hidden;
   color: #3b4e34;
   font-size: 0.84rem;
@@ -582,36 +622,50 @@
   white-space: nowrap;
 }
 
-.spoilage-list-details span {
+.progress-list-details span {
   color: #818a78;
   font-size: 0.7rem;
 }
 
-.spoilage-list-date,
-.spoilage-list-date > span {
+.progress-list-date,
+.progress-list-date > span {
   display: flex;
   align-items: center;
 }
 
-.spoilage-list-date {
+.progress-list-date {
   flex-direction: column;
   align-items: flex-end;
   gap: 5px;
   color: #b44439;
 }
 
-.spoilage-list-item--near-overdue .spoilage-list-date {
+.progress-list-item--ready .progress-list-status {
+  background: #e3eedb;
+  color: #47733c;
+}
+
+.progress-list-item--harvest-soon .progress-list-status,
+.progress-list-item--harvest-soon .progress-list-date {
   color: #93640d;
 }
 
-.spoilage-list-date > span {
+.progress-list-item--harvest-soon .progress-list-status {
+  background: #fff1d2;
+}
+
+.progress-list-item--ready .progress-list-date {
+  color: #47733c;
+}
+
+.progress-list-date > span {
   gap: 4px;
   color: #68735f;
   font-size: 0.68rem;
   white-space: nowrap;
 }
 
-.spoilage-empty-state {
+.progress-empty-state {
   display: flex;
   min-height: 220px;
   flex-direction: column;
@@ -622,12 +676,12 @@
   text-align: center;
 }
 
-.spoilage-empty-state strong {
+.progress-empty-state strong {
   color: #405936;
   font-size: 0.9rem;
 }
 
-.spoilage-empty-state span {
+.progress-empty-state span {
   color: #848e7b;
   font-size: 0.77rem;
 }
@@ -687,7 +741,7 @@
 }
 
 .crop-dialog-form,
-.crop-delete-confirm {
+.crop-archive-confirm {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -718,6 +772,73 @@
   font-size: 0.82rem;
 }
 
+.crop-dialog-image-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #53614a;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.crop-dialog-image-field > span small,
+.crop-dialog-image-picker small {
+  color: #89917f;
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+
+.crop-dialog-image-field > input {
+  display: none;
+}
+
+.crop-dialog-image-picker {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border: 1px dashed #cfd8c5;
+  border-radius: 9px;
+  background: #fbfcf9;
+  color: #637057;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crop-dialog-image-picker > img {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.crop-dialog-image-picker > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.crop-dialog-image-remove {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a34a3d;
+  font: inherit;
+  font-size: 0.71rem;
+  cursor: pointer;
+}
+
+.crop-dialog-error {
+  margin: 0;
+  color: #a94339;
+  font-size: 0.75rem;
+}
+
 .crop-dialog-form textarea {
   resize: vertical;
 }
@@ -730,7 +851,7 @@
 }
 
 .crop-dialog-form footer,
-.crop-delete-confirm footer {
+.crop-archive-confirm footer {
   display: flex;
   justify-content: flex-end;
   gap: 9px;
@@ -739,7 +860,7 @@
 
 .crop-dialog-cancel,
 .crop-dialog-save,
-.crop-dialog-delete {
+.crop-dialog-archive {
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid #dfe4d8;
@@ -758,29 +879,29 @@
   color: #fff;
 }
 
-.crop-dialog-delete {
-  border-color: #b94639;
-  background: #b94639;
+.crop-dialog-archive {
+  border-color: #8d711e;
+  background: #8d711e;
   color: #fff;
 }
 
-.crop-delete-confirm {
+.crop-archive-confirm {
   align-items: center;
   padding-top: 25px;
   text-align: center;
 }
 
-.crop-delete-warning {
+.crop-archive-warning {
   display: grid;
   width: 46px;
   height: 46px;
   place-items: center;
   border-radius: 50%;
-  background: #fff0ed;
-  color: #bf4a3d;
+  background: #fff7dd;
+  color: #96731a;
 }
 
-.crop-delete-confirm p {
+.crop-archive-confirm p {
   max-width: 34ch;
   margin: 0;
   color: #68735f;
@@ -788,24 +909,23 @@
   line-height: 1.5;
 }
 
-.crop-delete-confirm p strong {
+.crop-archive-confirm p strong {
   color: #3c4d34;
   text-transform: capitalize;
 }
 
-.crop-delete-confirm footer {
+.crop-archive-confirm footer {
   width: 100%;
 }
 
 .crop-dialog-cancel:focus-visible,
 .crop-dialog-save:focus-visible,
-.crop-dialog-delete:focus-visible,
+.crop-dialog-archive:focus-visible,
 .crop-dialog-close:focus-visible,
 .crop-primary-button:focus-visible,
 .crop-secondary-button:focus-visible,
 .crop-lifecycle-filter:focus-visible,
-.crop-action-button:focus-visible,
-.crop-view-button:focus-visible {
+.crop-card-menu-trigger:focus-visible {
   outline: 3px solid #d2b564;
   outline-offset: 2px;
 }
@@ -845,43 +965,43 @@
     height: clamp(190px, 55vw, 280px);
   }
 
-  .crop-card-actions {
+  .crop-card-menu-trigger {
     opacity: 1;
     pointer-events: auto;
     transform: none;
   }
 
-  .spoilage-modal-backdrop {
+  .progress-modal-backdrop {
     align-items: end;
     padding: 10px;
   }
 
-  .spoilage-modal {
+  .progress-modal {
     max-height: calc(100vh - 20px);
     border-radius: 18px 18px 12px 12px;
   }
 
-  .spoilage-modal-header {
+  .progress-modal-header {
     gap: 10px;
     padding: 18px 15px;
   }
 
-  .spoilage-modal-content {
+  .progress-modal-content {
     max-height: calc(100vh - 145px);
     padding: 12px;
   }
 
-  .spoilage-list-item {
+  .progress-list-item {
     flex-wrap: wrap;
     gap: 9px;
   }
 
-  .spoilage-list-status {
+  .progress-list-status {
     min-width: 79px;
     font-size: 0.6rem;
   }
 
-  .spoilage-list-date {
+  .progress-list-date {
     width: 100%;
     flex-direction: row;
     justify-content: space-between;
@@ -890,7 +1010,7 @@
 }
 
 @media (hover: none) {
-  .crop-card-actions {
+  .crop-card-menu-trigger {
     opacity: 1;
     pointer-events: auto;
     transform: none;
@@ -900,8 +1020,7 @@
 @media (prefers-reduced-motion: reduce) {
   .crop-card,
   .crop-card-image > img,
-  .crop-card-actions,
-  .crop-action-button,
+  .crop-card-menu-trigger,
   .crop-primary-button,
   .crop-secondary-button {
     transition: none;

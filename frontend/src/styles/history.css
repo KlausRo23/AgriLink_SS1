@@ -5,7 +5,7 @@
 .history-content {
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 22px clamp(18px, 3vw, 38px) 36px;
+  padding: 22px clamp(20px, 4vw, 48px) 36px;
 }
 
 .history-heading {
@@ -19,10 +19,6 @@
 .history-heading h1 {
   margin: 0;
   color: #b48b18;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.65rem, 3vw, 2rem);
-  font-weight: 550;
-  line-height: 1.15;
 }
 
 .history-heading > div > p:last-child {
@@ -750,7 +746,7 @@
 
 @media (max-width: 600px) {
   .history-content {
-    padding: 20px 14px 28px;
+    padding: 20px 18px 28px;
   }
 
   .history-heading {

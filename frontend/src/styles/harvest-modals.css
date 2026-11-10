@@ -134,6 +134,44 @@
   font-weight: 400;
 }
 
+.harvest-modal-form .harvest-auto-listing-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid #dfe7d7;
+  border-radius: 10px;
+  background: #f7f9f4;
+  cursor: pointer;
+}
+
+.harvest-auto-listing-option > input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 2px 0 0;
+  accent-color: #4c6a37;
+}
+
+.harvest-auto-listing-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.harvest-auto-listing-option strong {
+  color: #465a38;
+  font-size: 0.77rem;
+}
+
+.harvest-auto-listing-option small {
+  color: #818a78;
+  font-size: 0.69rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .harvest-photo-label > input {
   position: absolute;
   width: 1px;

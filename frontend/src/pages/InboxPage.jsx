@@ -15,7 +15,6 @@ const ORDER_STATUSES = [
   { value: "preparing", label: "Preparing" },
   { value: "ready", label: "Ready for delivery" },
   { value: "delivered", label: "Delivered" },
-  { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
 ]
 
@@ -24,7 +23,33 @@ function getInitials(name = "") {
 }
 
 function getOrderStatusLabel(status) {
+  if (status === "completed") return "Delivered"
   return ORDER_STATUSES.find((item) => item.value === status)?.label || "Pending"
+}
+
+function getEditableOrderStatus(status) {
+  return status === "completed" ? "delivered" : status || "confirmed"
+}
+
+function isOrderThread(thread) {
+  return Boolean(thread.listingName && Number(thread.quantity) > 0)
+}
+
+function matchesInboxFilter(thread, filter) {
+  if (filter === "archive") return thread.archived
+  if (thread.archived) return false
+  if (filter === "requests") return thread.status === "pending"
+  if (filter === "active-orders") {
+    return thread.status === "active"
+      && isOrderThread(thread)
+      && !["delivered", "completed", "cancelled"].includes(thread.orderStatus)
+  }
+  if (filter === "delivered") {
+    return thread.status === "active"
+      && isOrderThread(thread)
+      && ["delivered", "completed"].includes(thread.orderStatus)
+  }
+  return true
 }
 
 function InboxPage() {
@@ -44,6 +69,8 @@ function InboxPage() {
     : "")
   const selectedThread = threads.find((thread) => thread.id === selectedId)
   const pendingCount = threads.filter((thread) => thread.status === "pending" && !thread.archived).length
+  const activeOrdersCount = threads.filter((thread) => matchesInboxFilter(thread, "active-orders")).length
+  const deliveredCount = threads.filter((thread) => matchesInboxFilter(thread, "delivered")).length
   const archivedCount = threads.filter((thread) => thread.archived).length
 
   useEffect(() => {
@@ -63,10 +90,7 @@ function InboxPage() {
   const visibleThreads = useMemo(() => {
     const query = search.trim().toLowerCase()
     return threads.filter((thread) => {
-      if (filter === "archive" && !thread.archived) return false
-      if (filter !== "archive" && thread.archived) return false
-      if (filter === "requests" && thread.status !== "pending") return false
-      if (filter === "chats" && thread.status !== "active") return false
+      if (!matchesInboxFilter(thread, filter)) return false
       return !query || `${thread.customerName} ${thread.listingName} ${thread.messages.at(-1)?.text}`.toLowerCase().includes(query)
     })
   }, [filter, search, threads])
@@ -80,13 +104,7 @@ function InboxPage() {
 
   function setInboxFilter(nextFilter) {
     setFilter(nextFilter)
-    const nextThread = threads.find((thread) => {
-      if (nextFilter === "archive") return thread.archived
-      if (thread.archived) return false
-      if (nextFilter === "requests") return thread.status === "pending"
-      if (nextFilter === "chats") return thread.status === "active"
-      return true
-    })
+    const nextThread = threads.find((thread) => matchesInboxFilter(thread, nextFilter))
     setSelectedId(nextThread?.id || null)
     setMobileDetailOpen(false)
   }
@@ -126,6 +144,8 @@ function InboxPage() {
     }
     updateThread(threadId, (current) => ({ ...current, orderStatus }))
     setPendingOrderStatus(null)
+    if (["delivered", "completed"].includes(orderStatus)) setFilter("delivered")
+    else if (filter === "delivered") setFilter("active-orders")
   }
 
   function confirmRequestAction() {
@@ -156,6 +176,7 @@ function InboxPage() {
         time,
       }],
     }))
+    setFilter("active-orders")
   }
 
   function declineRequest() {
@@ -212,7 +233,7 @@ function InboxPage() {
         <header className="inbox-page-heading">
           <div>
             <p className="inbox-eyebrow">Messages</p>
-            <h1>Messages</h1>
+            <h1 className="dashboard-page-title">Messages</h1>
             <p>Questions and order requests from buyers, plus reminders from AgriLink.</p>
           </div>
           <span className="inbox-preview-note"><ShieldCheck size={14} /> Local preview</span>
@@ -231,7 +252,8 @@ function InboxPage() {
               {[
                 { id: "all", label: "All" },
                 { id: "requests", label: "Requests", count: pendingCount },
-                { id: "chats", label: "Chats" },
+                { id: "active-orders", label: "Active Orders", count: activeOrdersCount },
+                { id: "delivered", label: "Delivered", count: deliveredCount },
                 { id: "archive", label: "Archive", count: archivedCount, icon: Archive },
               ].map((item) => (
                 <button key={item.id} type="button" className={filter === item.id ? "is-active" : ""} aria-pressed={filter === item.id} onClick={() => setInboxFilter(item.id)}>
@@ -352,12 +374,12 @@ function InboxPage() {
                         <div className="inbox-order-status-control">
                           <label htmlFor="order-status">Order status</label>
                           <div>
-                            <span className={`inbox-order-status-badge is-${selectedThread.orderStatus || "confirmed"}`}>
+                            <span className={`inbox-order-status-badge is-${getEditableOrderStatus(selectedThread.orderStatus)}`}>
                               {getOrderStatusLabel(selectedThread.orderStatus)}
                             </span>
                             <select
                               id="order-status"
-                              value={selectedThread.orderStatus || "confirmed"}
+                              value={getEditableOrderStatus(selectedThread.orderStatus)}
                               onChange={(event) => requestOrderStatusChange(event.target.value)}
                               aria-label="Update order status"
                             >

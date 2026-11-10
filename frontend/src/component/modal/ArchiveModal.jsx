@@ -29,7 +29,7 @@ function formatArchivedAt(value) {
   }).format(date)
 }
 
-function ArchiveModal({ isOpen, onClose, onRestore }) {
+function ArchiveModal({ isOpen, onClose, onRestore, onDelete, archivedCrops = [] }) {
   const [items, setItems] = useState(INITIAL_ARCHIVE)
   const [activeTab, setActiveTab] = useState("all")
   const [confirmingDelete, setConfirmingDelete] = useState(null)
@@ -51,24 +51,41 @@ function ArchiveModal({ isOpen, onClose, onRestore }) {
 
   if (!isOpen) return null
 
-  const filteredItems = items.filter((item) => activeTab === "all" || item.itemType === activeTab)
+  const cropArchiveItems = archivedCrops.map((crop) => ({
+    ...crop,
+    itemType: "Crop",
+    isPersistedCrop: true,
+  }))
+  const archiveItems = [...items, ...cropArchiveItems]
+  const filteredItems = archiveItems.filter((item) => activeTab === "all" || item.itemType === activeTab)
   const counts = {
-    all: items.length,
-    Crop: items.filter((item) => item.itemType === "Crop").length,
+    all: archiveItems.length,
+    Crop: archiveItems.filter((item) => item.itemType === "Crop").length,
     Supply: items.filter((item) => item.itemType === "Supply").length,
   }
 
   function restoreItem(item) {
-    setItems((current) => current.filter((entry) => entry.id !== item.id))
-    onRestore?.(item)
-    setMessage(`${item.name} restored to your active items.`)
+    try {
+      onRestore?.(item)
+      if (!item.isPersistedCrop) setItems((current) => current.filter((entry) => entry.id !== item.id))
+      setMessage(`${item.name} restored to your active items.`)
+    } catch (error) {
+      console.error("Could not restore archived item:", error)
+      setMessage(error?.message || "Could not restore this item. Please try again.")
+    }
   }
 
   function deleteItem() {
     if (!confirmingDelete) return
-    setItems((current) => current.filter((entry) => entry.id !== confirmingDelete.id))
-    setMessage(`${confirmingDelete.name} was permanently deleted.`)
-    setConfirmingDelete(null)
+    try {
+      if (confirmingDelete.isPersistedCrop) onDelete?.(confirmingDelete)
+      else setItems((current) => current.filter((entry) => entry.id !== confirmingDelete.id))
+      setMessage(`${confirmingDelete.name} was permanently deleted.`)
+      setConfirmingDelete(null)
+    } catch (error) {
+      console.error("Could not permanently delete archived item:", error)
+      setMessage(error?.message || "Could not delete this item. Please try again.")
+    }
   }
 
   return (

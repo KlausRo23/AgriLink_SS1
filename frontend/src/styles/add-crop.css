@@ -3,9 +3,9 @@
 }
 
 .add-crop-content {
-  width: min(100%, 1100px);
-  margin: 0 auto;
-  padding: 20px clamp(16px, 4vw, 42px) 42px;
+  width: 100%;
+  margin: 0;
+  padding: 20px clamp(20px, 4vw, 48px) 42px;
 }
 
 .add-crop-back {
@@ -33,10 +33,9 @@
 
 .add-crop-page-heading h1 {
   margin: 0;
-  color: #38482e;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(1.7rem, 3vw, 2.25rem);
-  font-weight: 500;
+  font-family: var(--font-body, "Outfit", "Segoe UI", sans-serif);
+  font-style: normal;
+  line-height: 1.2;
 }
 
 .add-crop-page-heading > p:last-child {
@@ -742,8 +741,8 @@
 
 @media (max-width: 420px) {
   .add-crop-content {
-    padding-right: 12px;
-    padding-left: 12px;
+    padding-right: 18px;
+    padding-left: 18px;
   }
 
   .add-crop-section {
