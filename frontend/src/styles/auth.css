@@ -287,10 +287,10 @@
   font-size: 16px;
 }
 .role-btn {
-  height: 44px;
+  min-height: 40px;
   border-radius: 999px;
   border: 1.5px solid var(--green);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--green-dark);
   background: transparent;
@@ -302,6 +302,10 @@
 }
 .role-btn:active {
   transform: scale(0.97);
+}
+.role-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 /* ---------- Keyframes ---------- */

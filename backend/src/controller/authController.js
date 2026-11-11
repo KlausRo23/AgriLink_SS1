@@ -7,6 +7,7 @@ import { generateVerificationToken } from "../utils/generateVerificationCode.js"
 import { validateEmail, validatePassword, sanitizeInput } from '../utils/sanitizeInput.js'
 import { toPublicUser } from '../utils/publicUser.js'
 import { REGION_IDS } from '../constant/region.js'
+import { ROLES } from '../constant/roles.js'
 import transporter from "../config/nodemailer.js";
 import { buildWelcomeEmail, buildVerificationEmail, 
     buildPasswordResetEmail } from '../utils/emailTemplates.js'
@@ -85,10 +86,14 @@ export async function registerUser(req, res) {
 
 export async function verifyOTP(req, res) {
     try {
-        const {email, otp} = req.body
+        const {email, otp, role} = req.body
 
         if (!email || !otp) {
             return res.status(400).json({message: "All fields are required"})
+        }
+
+        if (role !== undefined && ![ROLES.FARMER, ROLES.BUYER].includes(role)) {
+            return res.status(400).json({message: "Invalid account type"})
         }
 
         const validEmail = email.trim().toLowerCase()
@@ -116,6 +121,7 @@ export async function verifyOTP(req, res) {
         }
 
         user.isVerified = true
+        if (role) user.role = role
         user.verificationToken = undefined
         user.verificationTokenExpiresAt = undefined
         await user.save()
@@ -125,7 +131,8 @@ export async function verifyOTP(req, res) {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         })
     } catch (error) {

@@ -1,0 +1,393 @@
+html[data-font-size="small"] {
+  font-size: 15px;
+}
+
+html[data-font-size="default"] {
+  font-size: 16px;
+}
+
+html[data-font-size="large"] {
+  font-size: 18px;
+}
+
+.dashboard-main .settings-tabs {
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.dashboard-main .settings-tabs .settings-tab {
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #64705c;
+  white-space: nowrap;
+}
+
+.dashboard-main .settings-tabs .settings-tab.is-active {
+  border-color: #d7e1cc;
+  background: #e8edde;
+  color: #405936;
+}
+
+.dashboard-main .settings-tabs .settings-tab.is-active::after {
+  display: none;
+}
+
+.dashboard-main .listing-tabs {
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-main .listing-tabs .listing-tab {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #64705c;
+  white-space: nowrap;
+}
+
+.dashboard-main .listing-tabs .listing-tab.is-active {
+  border-color: #d7e1cc;
+  background: #e8edde;
+  color: #405936;
+}
+
+.dashboard-main .listing-tabs .listing-tab.is-active::after {
+  display: none;
+}
+
+.dashboard-main .listing-tabs .listing-tab > span {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f7f9f4;
+  color: #52644b;
+  font-size: 0.75rem;
+}
+
+.dashboard-main .inventory-filter-options .inventory-filter-option,
+.dashboard-main .history-action-filters .history-filter-button,
+.dashboard-main .crop-lifecycle-filters .crop-lifecycle-filter,
+.dashboard-main .inbox-filters button,
+.dashboard-main .inventory-tabs button {
+ min-height: 42px;
+ padding: 8px 14px;
+ border-radius: 999px;
+}
+
+.dashboard-main .inbox-filters {
+ min-height: 52px;
+ align-items: center;
+ gap: 8px;
+ padding: 6px 12px;
+ border-bottom: 0;
+}
+
+.dashboard-main .inbox-filters button.is-active::after {
+ display: none;
+}
+
+.dashboard-main .inventory-filter-options .inventory-filter-option.is-active {
+ border: 1px solid #d7e1cc;
+ background: #e8edde;
+ color: #405936;
+}
+
+.dashboard-main .history-action-filters .history-filter-button {
+  border-radius: 999px;
+}
+
+.dashboard-main .settings-font-options {
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.dashboard-main .settings-font-options button,
+.dashboard-main .settings-region-options label {
+  min-height: 42px;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+html[data-appearance="dark"] .dashboard-main .settings-tabs .settings-tab,
+html[data-appearance="dark"] .dashboard-main .listing-tabs .listing-tab,
+html[data-appearance="dark"] .dashboard-main .inventory-filter-options .inventory-filter-option,
+html[data-appearance="dark"] .dashboard-main .history-action-filters .history-filter-button,
+html[data-appearance="dark"] .dashboard-main .crop-lifecycle-filters .crop-lifecycle-filter,
+html[data-appearance="dark"] .dashboard-main .inbox-filters button,
+html[data-appearance="dark"] .dashboard-main .inventory-tabs button,
+html[data-appearance="dark"] .dashboard-main .settings-font-options button,
+html[data-appearance="dark"] .dashboard-main .settings-region-options label {
+  border-color: #4c664d;
+  background: #24372c;
+  color: #d5e5ce;
+}
+
+html[data-appearance="dark"] .dashboard-main .settings-tabs .settings-tab.is-active,
+html[data-appearance="dark"] .dashboard-main .listing-tabs .listing-tab.is-active,
+html[data-appearance="dark"] .dashboard-main .inventory-filter-options .inventory-filter-option.is-active,
+html[data-appearance="dark"] .dashboard-main .history-action-filters .history-filter-button.is-active,
+html[data-appearance="dark"] .dashboard-main .crop-lifecycle-filters .crop-lifecycle-filter.is-active,
+html[data-appearance="dark"] .dashboard-main .inbox-filters button.is-active,
+html[data-appearance="dark"] .dashboard-main .inventory-tabs button.is-active,
+html[data-appearance="dark"] .dashboard-main .settings-font-options button.is-selected,
+html[data-appearance="dark"] .dashboard-main .settings-region-options label.is-selected {
+  border-color: #81976e;
+  background: #405638;
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inbox-filters {
+  background: #24372c;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-tabs .listing-tab.is-active > span {
+  background: #f0cb62;
+  color: #26331f;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-search,
+html[data-appearance="dark"] .dashboard-main .listing-sort {
+  border-color: #4c664d;
+  background: #24372c;
+  color: #d5e5ce;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-search input,
+html[data-appearance="dark"] .dashboard-main .listing-sort select {
+  border-color: transparent;
+  background: transparent;
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-search input::placeholder {
+  color: #bdcbb6;
+  opacity: 1;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-sort > span,
+html[data-appearance="dark"] .dashboard-main .listing-search > svg,
+html[data-appearance="dark"] .dashboard-main .listing-sort > svg {
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .listing-search button {
+  border-color: transparent;
+  background: transparent;
+  color: #d5e5ce;
+}
+
+html[data-appearance="dark"] .dashboard-main .crop-lifecycle-filter span,
+html[data-appearance="dark"] .dashboard-main .inventory-filter-option > span,
+html[data-appearance="dark"] .dashboard-main .inbox-filters button span {
+  border: 1px solid #81976e;
+  background: #526b3e;
+  color: #fff;
+}
+
+html[data-appearance="dark"] .dashboard-main .crop-lifecycle-filter.is-active span,
+html[data-appearance="dark"] .dashboard-main .inventory-filter-option.is-active > span,
+html[data-appearance="dark"] .dashboard-main .inbox-filters button.is-active span {
+  border-color: #f0cb62;
+  background: #f0cb62;
+  color: #26331f;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-button > span {
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-action-filters .history-filter-button {
+  border-color: #4c664d;
+  background: #24372c;
+  color: #d5e5ce;
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-action-filters .history-filter-button:hover {
+  border-color: #a5b87d;
+  background: #304533;
+  color: #f5f2dd;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-action-filters .history-filter-button.is-active {
+  border-color: #d5b04c;
+  background: #405638;
+  color: #fff2c2;
+  box-shadow: 0 0 0 1px rgb(213 176 76 / 18%);
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-search,
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-select-wrap {
+  border-color: #4c664d;
+  background: #24372c;
+  color: #d5e5ce;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-select-wrap > span {
+  background: transparent;
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-select-wrap select,
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-search input {
+  border-color: transparent;
+  background: transparent;
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-search input::placeholder {
+  color: #bdcbb6;
+}
+
+html[data-appearance="dark"] .dashboard-main .history-filter-controls .history-entry-count {
+  color: #d5e5ce;
+}
+
+html[data-appearance="dark"] .dashboard-main .listings-empty {
+  border-color: #49694b;
+  background: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main .listings-empty-icon {
+  background: #405f3f;
+  color: #f0cb62;
+}
+
+html[data-appearance="dark"] .dashboard-main .listings-empty h2 {
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .listings-empty p {
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-search {
+  border-color: #4c664d;
+  background: #24372c;
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-search input {
+  border-color: transparent;
+  background: transparent;
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-search input::placeholder {
+  color: #bdcbb6;
+  opacity: 1;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-search button {
+  border-color: #49694b;
+  background: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-date {
+  background: #304b37;
+  color: #d3e2ca;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-date strong,
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-info h2,
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-quantity strong {
+  color: #f0f5e9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-info > span,
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-quantity > span,
+html[data-appearance="dark"] .dashboard-main .inventory-card .inventory-card-quantity small {
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-card-title-row h2,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-card-dates,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-card-dates strong,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-card-footer,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-view-button,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-category {
+  color: #edf4e7;
+}
+
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-quantity,
+html[data-appearance="dark"] .dashboard-main .crop-card .crop-card-description {
+  color: #c5d5b9;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-trigger,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-trigger {
+  border-color: #73916d;
+  background: #24372c;
+  color: #f0cb62;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-trigger:hover,
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-trigger[aria-expanded="true"],
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-trigger:hover,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-trigger[aria-expanded="true"] {
+  background: #405638;
+  color: #fff2c2;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card > .inventory-card-open,
+html[data-appearance="dark"] .dashboard-main .crop-card > .crop-card-open {
+  border: 0;
+  background: transparent;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-list,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-list {
+  border-color: #49694b;
+  background: #1f3328;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 42%);
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-list button,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-list button {
+  border-color: transparent;
+  background: transparent;
+  color: #edf4e7;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-list button:hover,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-list button:hover {
+  background: #304b37;
+  color: #fff2c2;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-list button.is-danger,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-list button.is-danger {
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-card-menu-list button.is-danger:hover,
+html[data-appearance="dark"] .dashboard-main .crop-card-menu-list button.is-danger:hover {
+  background: #4b2c2a;
+  color: #ffd2c9;
+}
+
+html[data-appearance="dark"] .dashboard-main .settings-font-options {
+  border-color: #4c664d;
+  background: #1f3328;
+}
+
+@media (max-width: 600px) {
+  .dashboard-main .settings-tabs .settings-tab,
+  .dashboard-main .listing-tabs .listing-tab {
+    min-height: 42px;
+    padding: 8px 13px;
+  }
+}

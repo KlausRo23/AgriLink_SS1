@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Archive, ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, Camera, Check, Clock3, Droplets, Leaf, Pencil, Scissors, Sprout, SprayCan, X } from "lucide-react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
+import toast from "react-hot-toast"
 import CropManagementModal from "../component/modal/CropManagementModal"
 import RecordHarvestModal from "../component/modal/RecordHarvestModal"
 import WarningModal from "../component/modal/WarningModal"
-import { archiveCrop as archiveCropRequest, getAssetUrl, getCrop, harvestCrop as harvestCropRequest, updateCrop as updateCropRequest } from "../api/api"
+import { archiveCrop as archiveCropRequest, getAssetUrl, getCrop, getCropCalendar, harvestCrop as harvestCropRequest, saveCropActivity, updateCrop as updateCropRequest } from "../api/api"
 import { getCropLifecycleStatus } from "../utils/cropLifecycle"
 import "../styles/crop-detail.css"
 
@@ -38,6 +39,7 @@ function CropDetailPage() {
   const navigate = useNavigate()
   const [crop, setCrop] = useState(() => location.state?.crop || null)
   const [loadState, setLoadState] = useState({ id: null, error: "" })
+  const [failedImageSource, setFailedImageSource] = useState("")
   const loading = loadState.id !== id
   const loadError = loadState.id === id ? loadState.error : ""
   const today = new Date()
@@ -57,7 +59,6 @@ function CropDetailPage() {
   const [isHarvestModalOpen, setIsHarvestModalOpen] = useState(false)
   const [isEarlyHarvestWarningOpen, setIsEarlyHarvestWarningOpen] = useState(false)
   const [pendingHarvest, setPendingHarvest] = useState(null)
-  const [harvestRecord, setHarvestRecord] = useState(null)
   const [harvestError, setHarvestError] = useState("")
   const [cropDialog, setCropDialog] = useState(null)
   const photoInput = useRef(null)
@@ -82,12 +83,13 @@ function CropDetailPage() {
   const activities = selectedDate ? activityByDate[dayKey(selectedDate)] || [] : []
   const isSelectedToday = selectedDate && dayKey(selectedDate) === dayKey(today)
   const savedCropStatus = crop?.status || crop?.displayStatus || "growing"
-  const isHarvested = Boolean(harvestRecord) || savedCropStatus === "harvested"
+  const isHarvested = savedCropStatus === "harvested"
   const cropStatus = isHarvested ? "harvested" : getCropLifecycleStatus(crop)
   const cropStatusLabel = {
     "ready-to-harvest": "Ready to harvest",
     overdue: "Overdue",
   }[cropStatus] || cropStatus
+  const imageSource = crop?.imageUrl || crop?.image
 
   useEffect(() => {
     let active = true
@@ -110,6 +112,29 @@ function CropDetailPage() {
     mediaQuery.addEventListener("change", updateViewport)
     return () => mediaQuery.removeEventListener("change", updateViewport)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const month = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}`
+    getCropCalendar(id, month)
+      .then(({ data }) => {
+        if (!active) return
+        const entries = data.data.entries || []
+        setActivityByDate((previous) => ({
+          ...previous,
+          ...Object.fromEntries(entries.map((entry) => [entry.date, [{
+            ...entry,
+            photoPreview: entry.photoUrl ? getAssetUrl(entry.photoUrl) : "",
+          }]])),
+        }))
+      })
+      .catch((error) => {
+        if (active) {
+          setMessage(error.response?.data?.message || "Could not load crop care history.")
+        }
+      })
+    return () => { active = false }
+  }, [calendarMonth, id])
 
   useEffect(() => {
     if (!selectedDate || !isMobile) return undefined
@@ -153,6 +178,7 @@ function CropDetailPage() {
       const { data } = await updateCropRequest(updatedCrop.id, formData)
       setCrop(data.data)
       setCropDialog(null)
+      toast.success(`${data.data.name} updated.`)
     } catch (error) {
       throw new Error(error.response?.data?.message || "Could not save crop changes.", { cause: error })
     }
@@ -162,6 +188,7 @@ function CropDetailPage() {
     try {
       await archiveCropRequest(selectedCrop.id)
       setCropDialog(null)
+      toast.success(`${selectedCrop.name} moved to History.`)
       navigate("/crops")
     } catch (error) {
       throw new Error(error.response?.data?.message || "Could not archive this crop.", { cause: error })
@@ -220,27 +247,35 @@ function CropDetailPage() {
     reader.readAsDataURL(file)
   }
 
-  function saveActivity(event) {
+  async function saveActivity(event) {
     event.preventDefault()
     if (!selectedActions.length && !note.trim() && !photo) {
       setMessage("Select an activity, add a note, or attach a photo before saving.")
       return
     }
-    const entry = {
-      actions: selectedActions,
-      note: note.trim(),
-      photoName: photo?.name || "",
-      photoPreview,
+    const date = dayKey(selectedDate)
+    const formData = new FormData()
+    formData.set("actions", JSON.stringify(selectedActions))
+    formData.set("note", note.trim())
+    if (photo) formData.set("image", photo)
+
+    try {
+      const { data } = await saveCropActivity(crop.id, date, formData)
+      const entry = {
+        ...data.data,
+        photoPreview: data.data.photoUrl ? getAssetUrl(data.data.photoUrl) : "",
+        photoName: photo?.name || "",
+      }
+      setActivityByDate((previous) => ({ ...previous, [date]: [entry] }))
+      setSelectedActions(entry.actions)
+      setNote(entry.note)
+      setPhoto(null)
+      setPhotoPreview("")
+      setMessage("Activity saved.")
+      toast.success("Crop activity saved.")
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Could not save crop activity.")
     }
-    setActivityByDate((previous) => ({
-      ...previous,
-      [dayKey(selectedDate)]: [...(previous[dayKey(selectedDate)] || []), entry],
-    }))
-    setSelectedActions([])
-    setNote("")
-    setPhoto(null)
-    setPhotoPreview("")
-    setMessage("Activity saved.")
   }
 
   async function recordHarvest(data, fromWarning = false) {
@@ -256,12 +291,12 @@ function CropDetailPage() {
 
     try {
       const { data: response } = await harvestCropRequest(crop.id, formData)
-      setCrop(response.data.crop)
-      setHarvestRecord(response.data)
       setPendingHarvest(null)
       setIsEarlyHarvestWarningOpen(false)
       setIsHarvestModalOpen(false)
       setHarvestError("")
+      toast.success(`${response.data.crop.name} harvested and moved to Archive.`)
+      navigate("/crops")
     } catch (error) {
       setHarvestError(error.response?.data?.message || "Could not record this harvest.")
       if (fromWarning) setIsHarvestModalOpen(true)
@@ -307,8 +342,12 @@ function CropDetailPage() {
 
         <section className="crop-detail-hero">
           <div className="crop-detail-image">
-            {crop.imageUrl || crop.image ? (
-              <img src={getAssetUrl(crop.imageUrl || crop.image)} alt={`${crop.name} crop`} />
+            {imageSource && failedImageSource !== imageSource ? (
+              <img
+                src={getAssetUrl(imageSource)}
+                alt={`${crop.name} crop`}
+                onError={() => setFailedImageSource(imageSource)}
+              />
             ) : (
               <div className="crop-detail-image-placeholder">
                 <span className="crop-detail-orbit" />
@@ -341,9 +380,6 @@ function CropDetailPage() {
               </div>
             </div>
             {harvestError && <p className="crop-harvest-preview-message is-error" role="alert">{harvestError}</p>}
-            {harvestRecord && <p className="crop-harvest-preview-message" role="status">
-              Harvest recorded and added to inventory{harvestRecord.listing ? "; listing submitted for review." : "."}
-            </p>}
             <div className="crop-detail-tags">
               {crop.isOrganic && <span className="crop-detail-tag organic"><Check size={12} /> Organic</span>}
               <span className={`crop-detail-tag status-${cropStatus}`}>{cropStatusLabel}</span>
@@ -474,7 +510,7 @@ function CropDetailPage() {
                       <span className="crop-saved-action" key={action}>{ACTIONS.find((item) => item.value === action)?.label || action}</span>
                     ))}
                     {activity.note && <p>{activity.note}</p>}
-                    {activity.photoPreview && <img className="crop-saved-photo" src={activity.photoPreview} alt={activity.photoName ? `Activity photo: ${activity.photoName}` : "Saved activity"} />}
+                    {(activity.photoPreview || activity.photoUrl) && <img className="crop-saved-photo" src={activity.photoPreview || getAssetUrl(activity.photoUrl)} alt={activity.photoName ? `Activity photo: ${activity.photoName}` : "Saved activity"} />}
                     {activity.photoName && <small><Camera size={12} /> {activity.photoName}</small>}
                   </article>
                 ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, Leaf, Plus, Sprout } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import CropCard from "../component/card/CropCard"
 import CropManagementModal from "../component/modal/CropManagementModal"
 import ProgressLogsModal from "../component/modal/ProgressLogsModal"
@@ -13,9 +14,8 @@ const FILTERS = [
   { value: "growing", label: "Growing" },
   { value: "ready-to-harvest", label: "Ready to harvest" },
   { value: "overdue", label: "Overdue" },
-  { value: "harvested", label: "Harvested" },
 ]
-const LIFECYCLE_ORDER = { overdue: 0, "ready-to-harvest": 1, growing: 2, harvested: 3 }
+const LIFECYCLE_ORDER = { overdue: 0, "ready-to-harvest": 1, growing: 2 }
 
 function CropPage() {
   const navigate = useNavigate()
@@ -80,6 +80,7 @@ function CropPage() {
       const { data } = await updateCropRequest(updatedCrop.id, formData)
       setCrops((previous) => previous.map((crop) => crop.id === updatedCrop.id ? data.data : crop))
       setDialog(null)
+      toast.success(`${data.data.name} updated.`)
       return data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || "Could not save crop changes.", { cause: error })
@@ -91,6 +92,7 @@ function CropPage() {
       await archiveCropRequest(crop.id)
       setCrops((previous) => previous.filter((entry) => entry.id !== crop.id))
       setDialog(null)
+      toast.success(`${crop.name} moved to History.`)
       return true
     } catch (error) {
       throw new Error(error.response?.data?.message || "Could not archive this crop.", { cause: error })

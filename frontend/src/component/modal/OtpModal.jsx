@@ -16,6 +16,7 @@ export default function OtpModal({ email, onClose, onVerified, onResend, onVerif
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
   const [cooldown, setCooldown] = useState(30);
+  const [accountType, setAccountType] = useState("farmer");
 
   // Resend countdown
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function OtpModal({ email, onClose, onVerified, onResend, onVerif
     setError("");
     setLoading(true);
     try {
-      const ok = onVerify ? await onVerify({ code }) : false;
+      const ok = onVerify ? await onVerify({ code, role: accountType }) : false;
       if (!ok) throw new Error("invalid");
       close(() => onVerified?.());
     } catch (verificationError) {
@@ -111,6 +112,24 @@ export default function OtpModal({ email, onClose, onVerified, onResend, onVerif
           {error && <p className="field-error">{error}</p>}
         </div>
         <p className="hint mt-2">Check your inbox and spam folder.</p>
+
+        <p className="mt-4 text-xs" style={{ color: "var(--muted)" }}>
+          Are you trying to verify your account as a:
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Account type">
+          {["farmer", "buyer"].map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`role-btn ${accountType === type ? "selected" : ""}`}
+              aria-pressed={accountType === type}
+              disabled={loading}
+              onClick={() => setAccountType(type)}
+            >
+              {type[0].toUpperCase() + type.slice(1)}
+            </button>
+          ))}
+        </div>
 
         <button type="submit" className="btn-primary mt-5" disabled={loading}>
           {loading ? <span className="spinner" /> : "Verify & continue"}

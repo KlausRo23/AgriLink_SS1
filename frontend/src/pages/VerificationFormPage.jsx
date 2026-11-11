@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import { useFormContext } from "../context/useFormContext"
 import "../styles/Farmerformpage.css"
 
@@ -163,6 +164,7 @@ function VerificationFormPage() {
     setSubmitting(true)
     try {
       await submitVerification(formData)
+      toast.success("Farm verification submitted.")
       navigate("/dashboard", { replace: true })
     } catch (error) {
       const serverFields = error?.response?.data?.data

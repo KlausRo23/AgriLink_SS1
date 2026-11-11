@@ -241,6 +241,10 @@ export async function restoreArchive(id, requester) {
     const snapshot = { ...entry.toObject().snapshot }
     delete snapshot.__v
 
+    if (entry.itemType === "Crop" && snapshot.status === "harvested") {
+        throw new AppError("Harvested crops cannot be restored to active crops.", 409)
+    }
+
     await type.beforeRestore?.(snapshot, requester.id)
 
     if (await type.model.exists({ _id: entry.originalId })) {

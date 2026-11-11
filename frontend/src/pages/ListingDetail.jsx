@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
-import { ArrowLeft, ArrowUpRight, MapPin, Minus, Plus, ShoppingBag, Sprout } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, MapPin, Minus, Plus, ShoppingBag } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import toast from "react-hot-toast"
 import ListingCareHistory from "../component/listing/ListingCareHistory"
 import { createInboxOrderRequest, getMarketplaceListing, getMyListing } from "../api/api"
 import { normalizeListing } from "../data/listings"
@@ -15,6 +16,8 @@ function ListingDetail() {
   const [quantity, setQuantity] = useState(1)
   const [notice, setNotice] = useState("")
   const [orderSubmitting, setOrderSubmitting] = useState(false)
+  const [photoSelection, setPhotoSelection] = useState({ listingId: "", index: 0 })
+  const [failedPhotos, setFailedPhotos] = useState(() => new Set())
 
   useEffect(() => {
     let active = true
@@ -41,6 +44,39 @@ function ListingDetail() {
     return () => { active = false }
   }, [id])
 
+  const galleryPhotos = useMemo(() => {
+    if (!listing) return []
+    const carePhotos = (listing.careLog?.entries || [])
+      .filter((entry) => entry.photoUrl)
+      .sort((first, second) => second.date.localeCompare(first.date))
+      .map((entry) => {
+        const actions = (entry.actions || []).join(", ")
+        const date = new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" })
+          .format(new Date(`${entry.date}T12:00:00`))
+        return {
+          src: entry.photoUrl,
+          label: `Farmer photo from ${date}`,
+          date,
+          dayOfGrowing: entry.dayOfGrowing,
+          caption: entry.note || (actions ? `Care activity: ${actions}` : `Farm photo from Day ${entry.dayOfGrowing}`),
+        }
+      })
+    const photos = [...carePhotos]
+    if (listing.imageUrl && !photos.some((photo) => photo.src === listing.imageUrl)) {
+      photos.push({
+        src: listing.imageUrl,
+        label: `${listing.name} product photo`,
+        date: listing.harvestDate
+          ? new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" })
+            .format(new Date(`${listing.harvestDate}T12:00:00`))
+          : "",
+        dayOfGrowing: null,
+        caption: `${listing.careLog?.isOrganic ? "Freshly harvested organic" : "Freshly harvested"} ${listing.name.toLowerCase()}`,
+      })
+    }
+    return photos
+  }, [listing])
+
   if (!listing) {
     return (
       <main className="dashboard-main listing-detail-page">
@@ -63,12 +99,23 @@ function ListingDetail() {
   const isApproved = listing.status === "approved"
   const canOrder = isApproved && !listing.isOwner
   const price = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })
+  const activePhotoIndex = photoSelection.listingId === listing.id ? photoSelection.index : 0
+  const activePhoto = galleryPhotos[activePhotoIndex] || galleryPhotos[0]
+  const farmerPhotoCount = galleryPhotos.filter((photo) => photo.dayOfGrowing !== null).length
+
+  function movePhoto(direction) {
+    setPhotoSelection({
+      listingId: listing.id,
+      index: (activePhotoIndex + direction + galleryPhotos.length) % galleryPhotos.length,
+    })
+  }
 
   async function placeOrder() {
     setOrderSubmitting(true)
     setNotice("")
     try {
       const { data } = await createInboxOrderRequest({ listingId: listing.id, quantity })
+      toast.success("Order request sent.")
       navigate("/inbox", { state: { threadId: data.data.id } })
     } catch (error) {
       setNotice(error.response?.data?.message || "Could not submit this order request.")
@@ -88,21 +135,61 @@ function ListingDetail() {
         <div className="listing-detail-breadcrumb">Marketplace <span>/</span> {listing.category} <span>/</span> {listing.name}</div>
 
         <section className="listing-detail-layout">
-          <div className="listing-detail-gallery">
+          <div className={`listing-detail-gallery${galleryPhotos.length > 1 ? " has-carousel" : ""}`}>
+            {galleryPhotos.length > 1 && (
+              <div className="listing-detail-thumbnails" aria-label="Product and farmer photos">
+                {galleryPhotos.map((photo, index) => (
+                  <button
+                    type="button"
+                    key={photo.src}
+                    className={`listing-detail-thumbnail${index === activePhotoIndex ? " is-selected" : ""}`}
+                    onClick={() => setPhotoSelection({ listingId: listing.id, index })}
+                    aria-label={`Show ${photo.label}`}
+                    aria-pressed={index === activePhotoIndex}
+                  >
+                    {failedPhotos.has(photo.src)
+                      ? <span className="listing-thumbnail-fallback" aria-hidden="true">{listing.emoji}</span>
+                      : <img
+                          src={photo.src}
+                          alt=""
+                          onError={() => setFailedPhotos((failed) => new Set(failed).add(photo.src))}
+                        />}
+                    {photo.dayOfGrowing !== null && <span className="listing-thumbnail-day">Day {photo.dayOfGrowing}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className={`listing-detail-main-image listing-art--${listing.visual}`}>
-              {listing.imageUrl
-                ? <img src={listing.imageUrl} alt={listing.name} />
+              {activePhoto && !failedPhotos.has(activePhoto.src)
+                ? <img
+                    key={activePhoto.src}
+                    src={activePhoto.src}
+                    alt={activePhoto.label}
+                    onError={() => setFailedPhotos((failed) => new Set(failed).add(activePhoto.src))}
+                  />
                 : <span className="listing-detail-emoji" aria-hidden="true">{listing.emoji}</span>}
-              <span className="listing-fresh-badge"><Sprout size={14} aria-hidden="true" /> Fresh harvest</span>
-            </div>
-            <div className="listing-detail-thumbnails" aria-label="Product images">
-              {[0, 1, 2].map((image) => (
-                <div key={image} className={`listing-detail-thumbnail listing-art--${listing.visual}${image === 0 ? " is-selected" : ""}`}>
-                  <span aria-hidden="true">{listing.emoji}</span>
+              {activePhoto?.dayOfGrowing != null && (
+                <span className="listing-photo-day">Day {activePhoto.dayOfGrowing}</span>
+              )}
+              {activePhoto && (
+                <div className="listing-photo-caption">
+                  {activePhoto.date && <span>{activePhoto.date}</span>}
+                  <strong>{activePhoto.caption}</strong>
                 </div>
-              ))}
-              <p>Farm-fresh produce, carefully harvested</p>
+              )}
+              {galleryPhotos.length > 1 && (
+                <div className="listing-gallery-controls" aria-label="Product photo carousel">
+                  <button type="button" onClick={() => movePhoto(-1)} aria-label="Previous product photo">
+                    <ChevronLeft size={20} aria-hidden="true" />
+                  </button>
+                  <span>{activePhotoIndex + 1} / {galleryPhotos.length}</span>
+                  <button type="button" onClick={() => movePhoto(1)} aria-label="Next product photo">
+                    <ChevronRight size={20} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
+            {farmerPhotoCount > 0 && <p className="listing-detail-photo-count">{farmerPhotoCount} farmer care photo{farmerPhotoCount === 1 ? "" : "s"}</p>}
           </div>
 
           <div className="listing-detail-info">

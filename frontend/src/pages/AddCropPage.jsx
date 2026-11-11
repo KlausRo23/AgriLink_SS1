@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react"
 import { ArrowLeft, CalendarDays, Check, ChevronDown, ImagePlus, Leaf, MapPin, Search, Sprout, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import { createCrop } from "../api/api"
 import "../styles/add-crop.css"
 
@@ -199,6 +200,7 @@ function AddCropPage() {
     setSubmitting(true)
     try {
       await createCrop(formData)
+      toast.success(`${selectedCrop.name} added to your crops.`)
       navigate("/crops", { replace: true })
     } catch (saveError) {
       setError(saveError.response?.data?.message || "Could not save the crop. Please try again.")

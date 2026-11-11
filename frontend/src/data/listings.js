@@ -29,6 +29,13 @@ export function normalizeListing(listing) {
     stock: Number(listing.stock) || 0,
     listedDate: getDateOnly(date),
     imageUrl: listing.imageUrl ? getAssetUrl(listing.imageUrl) : "",
+    careLog: listing.careLog ? {
+      ...listing.careLog,
+      entries: (listing.careLog.entries || []).map((entry) => ({
+        ...entry,
+        photoUrl: entry.photoUrl ? getAssetUrl(entry.photoUrl) : null,
+      })),
+    } : listing.careLog,
     emoji: listing.icon || "🥬",
     visual: "leafy",
     harvestDate: getDateOnly(listing.harvestDate),

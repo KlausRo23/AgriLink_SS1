@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { BellRing, CalendarDays, X } from "lucide-react"
+import toast from "react-hot-toast"
 import "../../styles/inventory.css"
 
 const REMINDERS_STORAGE_KEY = "agrilink-inventory-reminders-v1"
@@ -95,6 +96,7 @@ function ReminderModal({ item, onClose, onSaved }) {
         [item.id]: reminder,
       }))
       onSaved?.(reminder)
+      toast.success(`Reminder saved for ${item.name}.`)
       onClose()
     } catch (storageError) {
       console.error("Could not save inventory reminder:", storageError)

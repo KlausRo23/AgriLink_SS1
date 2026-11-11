@@ -4,6 +4,7 @@ import {
   MoreVertical, PackageCheck, Search, Send, ShieldCheck, UserRound, X,
 } from "lucide-react"
 import { useLocation } from "react-router-dom"
+import toast from "react-hot-toast"
 import {
   getInboxConversations,
   respondToInboxRequest,
@@ -155,6 +156,7 @@ function InboxPage() {
   async function archiveThread(threadId) {
     const updated = await mutateThread(() => setInboxArchived(threadId, true))
     if (!updated) return
+    toast.success("Conversation archived.")
     if (selectedId === threadId) {
       setFilter("archive")
       setMobileDetailOpen(false)
@@ -164,6 +166,7 @@ function InboxPage() {
   async function unarchiveThread(threadId) {
     const updated = await mutateThread(() => setInboxArchived(threadId, false))
     if (!updated) return
+    toast.success("Conversation restored to your inbox.")
     if (selectedId === threadId) {
       setFilter("all")
       setMobileDetailOpen(false)
@@ -189,6 +192,7 @@ function InboxPage() {
     }
     setPendingOrderStatus(null)
     const updated = await mutateThread(() => updateInboxOrderStatus(threadId, orderStatus))
+    if (updated) toast.success(`Order status changed to ${getOrderStatusLabel(orderStatus).toLowerCase()}.`)
     if (updated && ["delivered", "completed"].includes(orderStatus)) setFilter("delivered")
     else if (updated && filter === "delivered") setFilter("active-orders")
   }
@@ -202,6 +206,7 @@ function InboxPage() {
     const { threadId, action } = pendingRequestAction
     setPendingRequestAction(null)
     const updated = await mutateThread(() => respondToInboxRequest(threadId, action))
+    if (updated) toast.success(action === "accept" ? "Order request accepted." : "Order request declined.")
     if (updated && action === "accept") setFilter("active-orders")
     if (updated && action === "reject") {
       setFilter("archive")
@@ -214,7 +219,10 @@ function InboxPage() {
     const text = draft.trim()
     if (!text || !selectedThread || selectedThread.status !== "active") return
     const updated = await mutateThread(() => sendInboxMessage(selectedThread.id, text))
-    if (updated) setDraft("")
+    if (updated) {
+      setDraft("")
+      toast.success("Message sent.")
+    }
   }
 
   function selectThread(threadId) {

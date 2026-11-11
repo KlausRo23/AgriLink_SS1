@@ -897,18 +897,6 @@
   outline-offset: 2px;
 }
 
-html[data-font-size="small"] {
-  font-size: 15px;
-}
-
-html[data-font-size="default"] {
-  font-size: 16px;
-}
-
-html[data-font-size="large"] {
-  font-size: 18px;
-}
-
 html[data-appearance="dark"] body,
 html[data-appearance="dark"] .dashboard-layout,
 html[data-appearance="dark"] .dashboard-main {
@@ -925,8 +913,8 @@ html[data-appearance="dark"] .crop-card,
 html[data-appearance="dark"] .inventory-card,
 html[data-appearance="dark"] .listing-card,
 html[data-appearance="dark"] .history-card {
-  border-color: #39483c;
-  background-color: #28362d;
+  border-color: #405b43;
+  background-color: #263c2d;
   color: #e2e9df;
 }
 
@@ -945,7 +933,7 @@ html[data-appearance="dark"] .settings-document-row > div strong {
 }
 
 html[data-appearance="dark"] .settings-tabs {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 html[data-appearance="dark"] .settings-tab.is-active {
@@ -979,8 +967,8 @@ html[data-appearance="dark"] .settings-crop-options label,
 html[data-appearance="dark"] .settings-verification-status,
 html[data-appearance="dark"] .settings-rsbsa-card,
 html[data-appearance="dark"] .settings-document-row > button {
-  border-color: #435347;
-  background-color: #243128;
+  border-color: #4c664d;
+  background-color: #24372c;
   color: #d7e0d4;
 }
 
@@ -992,16 +980,16 @@ html[data-appearance="dark"] .settings-delivery-option.is-selected,
 html[data-appearance="dark"] .settings-crop-options label.is-selected,
 html[data-appearance="dark"] .settings-region-options label.is-selected,
 html[data-appearance="dark"] .settings-organic-pill.is-active {
-  border-color: #6c8c62;
-  background-color: #304431;
-  color: #c4dfae;
+  border-color: #9eb978;
+  background-color: #405638;
+  color: #f0f5e9;
 }
 
 html[data-appearance="dark"] .settings-password-area,
 html[data-appearance="dark"] .settings-control-section + .settings-control-section,
 html[data-appearance="dark"] .settings-logout-row,
 html[data-appearance="dark"] .settings-rsbsa-heading {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 @media (max-width: 820px) {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowDownWideNarrow, Search, Undo2, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import ListingCard from "../component/card/ListingCard"
 import { archiveListing, getMyListings, resubmitListing, updateListing } from "../api/api"
 import { normalizeListing } from "../data/listings"
@@ -153,7 +154,8 @@ function ListingPage() {
     try {
       await archiveListing(unsubmitting.id)
       setListings((current) => current.filter((item) => item.id !== unsubmitting.id))
-      setNotice(`${unsubmitting.name} was moved to your archive.`)
+      setNotice("")
+      toast.success(`${unsubmitting.name} moved to History.`)
     } catch (error) {
       setNotice(error.response?.data?.message || "Could not remove this listing.")
     } finally {
@@ -170,7 +172,8 @@ function ListingPage() {
       const updatedListing = normalizeListing(data.data)
       setListings((current) => current.map((item) => item.id === updatedListing.id ? updatedListing : item))
       setEditing(null)
-      setNotice(`${updatedListing.name} listing updated.`)
+      setNotice("")
+      toast.success(`${updatedListing.name} listing updated.`)
     } catch (error) {
       const message = error.response?.data?.message || "Could not update this listing."
       setNotice(message)
@@ -186,7 +189,8 @@ function ListingPage() {
       const { data } = await resubmitListing(listing.id)
       const updatedListing = normalizeListing(data.data)
       setListings((current) => current.map((item) => item.id === updatedListing.id ? updatedListing : item))
-      setNotice(`${updatedListing.name} was resubmitted for review.`)
+      setNotice("")
+      toast.success(`${updatedListing.name} resubmitted for review.`)
     } catch (error) {
       setNotice(error.response?.data?.message || "Could not resubmit this listing.")
     } finally {

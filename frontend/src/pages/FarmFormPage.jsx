@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import { CROP_SPECIALTIES } from "../data/cropSpecialties"
 import { DELIVERY_MODES } from "../data/deliveryModes"
 import { useFormContext } from "../context/useFormContext"
@@ -275,6 +276,7 @@ function FarmFormPage() {
     setSubmitting(true)
     try {
       await submitFarm(buildFormData())
+      toast.success("Farm profile saved.")
       navigate("/verification", { replace: true })
     } catch (error) {
       const serverFields = error?.response?.data?.data

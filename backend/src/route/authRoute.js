@@ -13,6 +13,10 @@ router.post('/verify-otp',
     otpLimit,
     verifyOTP)
 
+router.post('/verify-email',
+    otpLimit,
+    verifyOTP)
+
 router.post('/resend-otp',
     otpLimit,
     resendOTP)

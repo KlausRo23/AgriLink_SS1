@@ -1,0 +1,1568 @@
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] .dashboard-layout,
+html[data-appearance="dark"] .dashboard-main {
+  background-color: #1d2821;
+  color: #e2e9df;
+  color-scheme: dark;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  h1, h2, h3, h4, h5, h6, p, span, small, label, strong, em, time, li,
+  dt, dd, th, td, legend, output, a, button, figcaption
+) {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(small, label, legend, [class*="hint"], [class*="note"], [class*="meta"]) {
+  font-size: max(0.8rem, 0.85em);
+  line-height: 1.45;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-topbar, .settings-card, .settings-profile-summary, .dashboard-card,
+  .dashboard-summary-card, .crop-card, .inventory-card, .listing-card,
+  .history-card, [class*="metric-card"], [class*="growth-card"],
+  [class*="activity-card"], [class*="detail-panel"], [class*="list-pane"],
+  [class*="detail-card"], [class*="detail-header"], [class*="chat-pane"],
+  [class*="calendar-panel"], [class*="table"], [class*="modal"],
+  [class*="dialog"], [class*="filters"], [class*="toolbar"]
+):not([class*="status"]):not([class*="badge"]) {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-main, .dashboard-content, .settings-content, .history-content,
+  .listings-content, .inventory-content, .crop-content
+) {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(input, select, textarea) {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+  color-scheme: dark;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(input, select, textarea)::placeholder {
+  color: #b6c1b2;
+  opacity: 1;
+}
+
+html[data-appearance="dark"] .dashboard-main select option {
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main button:where(:not(.crop-card-open):not(.inventory-card-open):not([class*="primary"]):not([class*="action"]):not([class*="save"]):not([class*="delete"]):not([class*="archive"]):not([class*="harvest"]):not([class*="confirm"]):not([class*="submit"]):not([class*="danger"]):not([class*="logout"]):not([class*="accept"]):not([class*="reject"]):not([class*="approve"]):not([class*="restore"]):not([class*="send"])) {
+  border-color: #4c664d;
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  [class*="status"], [class*="badge"], [class*="pill"]
+) {
+  border-color: #4c664d;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  [class*="success"], [class*="approved"], [class*="completed"], [class*="available"]
+) {
+  border-color: #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-attention-section .summary-card,
+  .dashboard-listing-overview .summary-card
+) {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-attention-section .summary-card > span:not(.summary-icon),
+  .dashboard-listing-overview .summary-card > span
+) {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-attention-section .summary-card strong,
+  .dashboard-listing-overview .summary-card strong
+) {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .dashboard-attention-section .summary-card small,
+  .dashboard-listing-overview .summary-card small
+) {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main .dashboard-attention-section .summary-icon.red {
+  background-color: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main .dashboard-attention-section .summary-icon.gold {
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main .dashboard-attention-section .summary-icon.green {
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main .dashboard-attention-section .summary-icon.blue {
+  background-color: #243d43;
+  color: #b7dbe8;
+}
+
+html[data-appearance="dark"] .dashboard-main .freshness-donut > div {
+  border: 1px solid #49694b;
+  background-color: #1d2821;
+}
+
+html[data-appearance="dark"] .dashboard-main .freshness-donut > div strong {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main .freshness-donut > div span {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main .freshness-donut.is-empty {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .dashboard-breadcrumb {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .dashboard-breadcrumb span {
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-back {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-back:hover {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-image {
+  border: 1px solid #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-image-placeholder {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(166, 207, 129, 0.18) 0 8%, transparent 28%),
+    radial-gradient(ellipse at 68% 30%, rgba(123, 166, 95, 0.22) 0 12%, transparent 34%),
+    radial-gradient(ellipse at 50% 85%, rgba(69, 107, 57, 0.55), transparent 50%),
+    linear-gradient(145deg, #304b37, #263c2d 55%, #1d2821);
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-orbit {
+  border-color: rgba(215, 235, 203, 0.22);
+  background: radial-gradient(ellipse, rgba(215, 235, 203, 0.12), rgba(151, 174, 106, 0.05) 65%, transparent 68%);
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-title-row h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .dashboard-eyebrow {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-edit-button {
+  border-color: #52775b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-edit-button:hover {
+  background-color: #3b5b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-edit-button:disabled {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-archive-button {
+  border-color: #855148;
+  background-color: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-archive-button:hover {
+  background-color: #5a3431;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-harvest-button {
+  border: 1px solid #806b3c;
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-harvest-button:hover {
+  background-color: #5b4b28;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-harvest-button:disabled {
+  border-color: #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-harvest-preview-message {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-harvest-preview-message.is-error {
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag {
+  border: 1px solid #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-growing,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-fresh,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.organic,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-harvested {
+  border-color: #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-ready-to-harvest,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-overdue,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-near-spoiling {
+  border-color: #806b3c;
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-tag.status-spoiled {
+  border-color: #855148;
+  background-color: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-card,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-card {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card > span,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-heading,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-dates,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-heading p {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card strong,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-heading strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card.harvest {
+  border-color: #806b3c;
+  background-color: #493c20;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card.harvest > span,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-metric-card.harvest strong {
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-track {
+  background-color: #1d2821;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-growth-track span {
+  background-color: #8fbd68;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-meta {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-meta > div {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-meta svg {
+  color: #a8c58f;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-meta span {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-detail-meta strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-description {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-description h2 {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-description p {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-heading h2 {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-crop-name {
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-panel,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-selected-day {
+  border-color: #405b43;
+  background-color: #1d2821;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-toolbar h3,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-day {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-toolbar button {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-toolbar button:hover,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-day:hover {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-weekday,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-legend {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-day.is-today {
+  outline-color: #8fbd68;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-calendar-day.is-selected {
+  background-color: #52775b;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-selected-day {
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-note input,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-selected-day form input {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-note input::placeholder {
+  color: #b6c1b2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-action-fieldset legend {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-option {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-option:hover {
+  background-color: #3b5b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-option.is-selected {
+  border-color: #6f9b67;
+  background-color: #254532;
+  color: #d7f0d7;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-option > svg {
+  background-color: #243d2b;
+  color: #b5d89d;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-upload button {
+  border-color: #52775b;
+  background-color: #243128;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-upload button:hover {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-activity-message {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-saved-activities article {
+  border-color: #405b43;
+  background-color: #1d2821;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-saved-action {
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-saved-activities p,
+html[data-appearance="dark"] .dashboard-main.crop-detail-page .crop-saved-activities small {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main .crop-dialog,
+html[data-appearance="dark"] .dashboard-main .harvest-modal,
+html[data-appearance="dark"] .dashboard-main .harvest-warning-modal {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(.crop-dialog-header, .harvest-modal-header) {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .crop-dialog-header h2, .crop-dialog-header p, .crop-dialog-form label,
+  .crop-archive-confirm p, .crop-archive-confirm p strong,
+  .harvest-modal-header h2, .harvest-modal-header p,
+  .harvest-modal-form > label, .harvest-form-row > label,
+  .harvest-warning-modal h2, .harvest-warning-modal > p,
+  .harvest-warning-question
+) {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .crop-dialog-form input, .crop-dialog-form select, .crop-dialog-form textarea,
+  .harvest-modal-form input:not([type="file"]), .harvest-modal-form select,
+  .harvest-modal-form textarea
+) {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-back {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-back:hover {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-breadcrumb {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-breadcrumb span {
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-product {
+  border-color: #405b43;
+  background: linear-gradient(135deg, #263c2d 60%, #304b37);
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-art {
+  border-color: #49694b;
+  background-color: #1d2821;
+  box-shadow: inset 0 0 0 1px rgba(215, 235, 203, 0.08);
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-category {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-product-info h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-product-info > p {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-edit-link {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-edit-link:hover {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-status {
+  border: 1px solid #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-status--near-spoiling {
+  border-color: #806b3c;
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-status--spoiled {
+  border-color: #855148;
+  background-color: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-card,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-panel,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-reminder-panel {
+  border-color: #405b43;
+  background: #263c2d;
+  color: #e2e9df;
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-label,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-card > strong {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-card > p,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-card > strong small {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-stock-divider {
+  background-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-listing-link,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-reminder-link {
+  border-color: #52775b;
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-listing-link:hover,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-reminder-link:hover {
+  border-color: #6b8e63;
+  background-color: #3b5b43;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-facts {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-facts > div + div {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-facts svg {
+  color: #a8c58f;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-facts span {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-facts strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-panel-heading > span {
+  background-color: #304b37;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-panel-heading h2 {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-panel-heading p,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-timeline time,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-no-reminder {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-timeline > div > span:last-child strong {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-timeline-dot {
+  background-color: #52775b;
+  box-shadow: 0 0 0 4px #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-timeline-dot.is-current {
+  background-color: #a8d46f;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-saved-reminder {
+  border-color: #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-saved-reminder p,
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-saved-reminder strong {
+  color: #d7f0d7;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-not-found {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-not-found h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-not-found p {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-not-found > svg {
+  color: #a8c58f;
+}
+
+html[data-appearance="dark"] .dashboard-main.inventory-page .inventory-detail-not-found .inventory-add-button {
+  border-color: #52775b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-header {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-header h2,
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form label {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-header p,
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-current-stock,
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-preview-note {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form input:not([type="file"]),
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form select,
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form textarea {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form input::placeholder,
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-form textarea::placeholder {
+  color: #b6c1b2;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-close {
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-dialog-close:hover {
+  background-color: #3b5b43;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-field-icon,
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-stock-field {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-field-icon input,
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-stock-field input {
+  background-color: transparent;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-reminder-heading-icon {
+  background-color: #304b37;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main .inventory-listing-available {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  .crop-dialog-image-picker, .crop-dialog-cancel,
+  .harvest-cancel-button, .harvest-photo-picker,
+  .inventory-button-secondary
+) {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .dashboard-breadcrumb {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .dashboard-breadcrumb span {
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-back {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-back:hover {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-page-heading h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-page-heading > p:last-child {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-section {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-section-heading h2,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-library-heading h2,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-shelf-heading h3 {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-section-heading p,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-library-heading p,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-shelf-heading span {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-section-icon {
+  border: 1px solid #52775b;
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-select {
+  border-color: #405b43;
+  background-color: #1d2821;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-label strong {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-label small,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-chevron {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-select select {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-region-select select option {
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile {
+  border-color: #405b43;
+  background-color: #1d2821;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile:hover {
+  border-color: #6b8e63;
+  background-color: #243128;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile.is-selected {
+  border-color: #8fbd68;
+  background-color: #254532;
+  box-shadow: 0 0 0 2px rgba(143, 189, 104, 0.22);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-green {
+  background: linear-gradient(145deg, #354b32, #263c2d);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-yellow {
+  background: linear-gradient(145deg, #514625, #3c3825);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-orange {
+  background: linear-gradient(145deg, #503a29, #3d3024);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-red {
+  background: linear-gradient(145deg, #50312d, #3c2927);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-purple {
+  background: linear-gradient(145deg, #42334d, #30283b);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-art.tone-earth {
+  background: linear-gradient(145deg, #493c30, #372f28);
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-name {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-category {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-tile-check {
+  background-color: #52775b;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-library-heading > span {
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-search {
+  border-color: #49694b;
+  background-color: #1d2821;
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-search input {
+  background-color: transparent;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-search input::placeholder {
+  color: #b6c1b2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-search button {
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-category-list button {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-category-list button:hover,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-category-list button.is-active {
+  border-color: #6b8e63;
+  background-color: #304b37;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-no-results {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-selection-summary {
+  border-color: #52775b;
+  background-color: #254532;
+  color: #d7f0d7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-selection-summary > span {
+  background-color: #304b37;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-selection-summary strong {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-selection-summary i {
+  background-color: #a8c58f;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-selection-summary button {
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-specialty {
+  border-color: #405b43;
+  background-color: #1d2821;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-checkmark {
+  border-color: #66836b;
+  background-color: #243128;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-specialty input:checked + .add-crop-checkmark {
+  border-color: #6f9b67;
+  background-color: #52775b;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-specialty strong,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-specialty small,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field > span,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-date-label > span {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field input:not([type="file"]),
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field textarea {
+  border-color: #49694b;
+  background-color: #243128;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field input::placeholder,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field textarea::placeholder {
+  color: #b6c1b2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-field input[readonly] {
+  border-color: #405b43;
+  background-color: #1d2821;
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-date-hint {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-heading {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-heading span,
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-picker small {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-picker {
+  border-color: #52775b;
+  background-color: #1d2821;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-picker:hover {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-image-picker strong {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-error {
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-cancel {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-cancel:hover {
+  background-color: #3b5b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-submit {
+  border-color: #52775b;
+  background-color: #52775b;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-submit:hover:not(:disabled) {
+  background-color: #638a67;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-submit:disabled {
+  border-color: #405b43;
+  background-color: #304b37;
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.add-crop-page .add-crop-preview-note {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .dashboard-breadcrumb {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .dashboard-breadcrumb span {
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-back-link {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-back-link:hover {
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-breadcrumb {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-breadcrumb span {
+  color: #839783;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-main-image {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-fresh-badge {
+  border-color: #52775b;
+  background-color: rgba(37, 69, 50, 0.94);
+  color: #d7f0d7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-thumbnail.is-selected {
+  border-color: #8fbd68;
+  box-shadow: 0 0 0 2px #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-photo-count {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-thumbnail {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-category {
+  border: 1px solid #49694b;
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-info h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-short-description {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-price strong {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-price span,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-stock-availability {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-stock-availability strong {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-seller {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-seller-avatar {
+  background-color: #304b37;
+  color: #d7f0d7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-seller > div:nth-child(2) span,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-quantity > div:first-child span {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-seller > div:nth-child(2) strong,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-quantity > div:first-child strong {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-seller-verified {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-quantity-stepper {
+  border-color: #49694b;
+  background-color: #243128;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-quantity-stepper button {
+  background-color: transparent;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-quantity-stepper button:hover:not(:disabled) {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-quantity-stepper button:disabled {
+  color: #72816e;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-quantity-stepper > span {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-subtotal {
+  border-color: #405b43;
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-subtotal strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-not-approved {
+  border-color: #806b3c;
+  background-color: #493c20;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-not-approved strong {
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-not-approved span {
+  color: #e2d4ad;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-place-order {
+  border-color: #52775b;
+  background-color: #52775b;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-place-order:hover:not(:disabled) {
+  background-color: #638a67;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-place-order:disabled {
+  border-color: #405b43;
+  background-color: #304b37;
+  color: #aab9a5;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-contact-farmer {
+  border-color: #52775b;
+  background-color: transparent;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-contact-farmer:hover {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-detail-notice {
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-location {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-about {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-about h2,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-heading h2 {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-about > div:first-child > p:last-child,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-heading > div > p:last-child {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-harvest-card {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-harvest-card span {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-harvest-card strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-organic {
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-private {
+  background-color: #304b37;
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-stat {
+  border-color: #405b43;
+  background-color: #263c2d;
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-stat-icon {
+  background-color: #304b37;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-stat > strong {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-stat > span:last-child {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-calendar {
+  border-color: #405b43;
+  background-color: #263c2d;
+  box-shadow: none;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-calendar-heading {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-calendar-heading h3 {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-calendar-heading p,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-weekday {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-month-navigation button {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #d7e5d2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-month-navigation button:hover {
+  background-color: #3b5b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day:hover {
+  background-color: #304b37;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day.is-active {
+  border-color: #6b8e63;
+  background-color: #254532;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day-details {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day-details > strong {
+  color: #e5eee2;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-day-details > p,
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-entry > p {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-growing-day {
+  color: #bdcbb7;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-action-tag.tag-blue {
+  background-color: #243d43;
+  color: #b7dbe8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-action-tag.tag-green {
+  background-color: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-action-tag.tag-orange {
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-action-tag.tag-purple {
+  background-color: #3c3048;
+  color: #ddc5f3;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listing-care-legend > span {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listings-empty {
+  border-color: #405b43;
+  background-color: #263c2d;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listings-empty h1 {
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] .dashboard-main.listing-detail-page .listings-empty p {
+  color: #cbd8c8;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  [class*="warning"], [class*="pending"], [class*="awaiting"], [class*="overdue"], [class*="draft"]
+) {
+  border-color: #806b3c;
+  background-color: #493c20;
+  color: #f3d68b;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  [class*="error"], [class*="failed"], [class*="rejected"], [class*="critical"], [class*="expired"]
+) {
+  border-color: #855148;
+  background-color: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(
+  svg text, .sales-y-axis-label, .sales-x-axis-label, .stock-bar-label
+) {
+  fill: #c6d0c2;
+  color: #c6d0c2;
+}
+
+html[data-appearance="dark"] .dashboard-main :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #e6c45f;
+  outline-offset: 3px;
+}
+
+html[data-appearance="dark"] .dashboard-main .settings-save-notice.is-visible.is-success {
+  padding: 8px 12px;
+  border: 1px solid #52775b;
+  border-radius: 8px;
+  background: #254532;
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] .dashboard-main .settings-save-notice.is-visible.is-error {
+  border-color: #855148;
+  background: #4b2c2a;
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) {
+  border-color: #405b43;
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] :is(
+  .report-modal-backdrop, .dashboard-modal-backdrop, .progress-modal-backdrop,
+  .archive-modal-backdrop, .archive-confirm-backdrop, .crop-dialog-backdrop,
+  .inventory-modal-backdrop, .inventory-log-backdrop, .listing-modal-backdrop,
+  .harvest-modal-backdrop, .inbox-buyer-modal-backdrop, .settings-logout-backdrop,
+  .modal-backdrop
+) {
+  background-color: rgba(7, 14, 9, 0.76);
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is(h1, h2, h3, h4, h5, h6, p, span, small, strong, label, legend, li, dt, dd, time, output) {
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is(header, footer) {
+  border-color: #405b43;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal-content, .report-modal-content, .progress-modal-content,
+  .archive-modal-list, .inventory-log-content, .crop-dialog-form,
+  .crop-archive-confirm, .harvest-modal-form, .listing-edit-form,
+  .listing-review-content, .modal-card
+) {
+  background-color: #263c2d;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] :is(
+  .progress-list-item, .archive-modal-item, .archive-modal-empty,
+  .report-preview-card, .report-document, .dashboard-modal-section,
+  .notification-modal-item, .listing-care-stat, .inventory-log-entry,
+  .inbox-modal-order-details
+) {
+  border-color: #405b43;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+  border-color: #49694b;
+  background-color: #1d2821;
+  color: #f0f4ed;
+  color-scheme: dark;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is(input, textarea)::placeholder {
+  color: #b6c1b2;
+  opacity: 1;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) select option {
+  background-color: #1d2821;
+  color: #f0f4ed;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) button:not(
+  [class*="primary"], [class*="submit"], [class*="save"], [class*="confirm"],
+  [class*="delete"], [class*="archive"], [class*="danger"], [class*="logout"],
+  [class*="approve"], [class*="reject"], [class*="harvest"], [class*="send"]
+) {
+  border-color: #49694b;
+  background-color: #304b37;
+  color: #e2e9df;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) button:not(
+  [class*="primary"], [class*="submit"], [class*="save"], [class*="confirm"],
+  [class*="delete"], [class*="archive"], [class*="danger"], [class*="logout"],
+  [class*="approve"], [class*="reject"], [class*="harvest"], [class*="send"]
+):hover:not(:disabled) {
+  border-color: #6b8e63;
+  background-color: #3b5b43;
+  color: #ffffff;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is([class*="error"], [role="alert"]) {
+  color: #ffb6a8;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is([class*="success"], [role="status"]) {
+  color: #c3ebca;
+}
+
+html[data-appearance="dark"] :is(
+  .dashboard-modal, .report-modal, .progress-modal, .archive-modal,
+  .archive-confirm-dialog, .crop-dialog, .inventory-dialog, .inventory-log-modal,
+  .listing-edit-modal, .listing-review-modal, .harvest-modal, .harvest-warning-modal,
+  .inbox-buyer-modal, .inbox-status-confirm-modal, .settings-logout-modal, .modal-card
+) :is([class*="warning"], [class*="pending"]) {
+  color: #f3d68b;
+}

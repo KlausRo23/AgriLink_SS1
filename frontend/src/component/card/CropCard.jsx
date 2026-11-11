@@ -13,7 +13,9 @@ const STATUS_LABELS = {
 
 function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [failedImageSource, setFailedImageSource] = useState("")
   const statusLabel = STATUS_LABELS[lifecycleStatus]
+  const imageSource = crop.imageUrl || crop.image
 
   function runAction(action) {
     setIsMenuOpen(false)
@@ -29,8 +31,12 @@ function CropCard({ crop, lifecycleStatus = "growing", onEdit, onArchive, onView
         aria-label={`View ${crop.name} crop details`}
       />
       <div className="crop-card-image">
-        {crop.imageUrl || crop.image ? (
-          <img src={getAssetUrl(crop.imageUrl || crop.image)} alt={`${crop.name} crop`} />
+        {imageSource && failedImageSource !== imageSource ? (
+          <img
+            src={getAssetUrl(imageSource)}
+            alt={`${crop.name} crop`}
+            onError={() => setFailedImageSource(imageSource)}
+          />
         ) : (
           <div className="crop-card-image-placeholder" aria-label={`${crop.name} image placeholder`}>
             <span className="crop-placeholder-orbit crop-placeholder-orbit-one" />

@@ -8,7 +8,7 @@ import path from "node:path"
 //import { UPLOADS_ROOT } from "./utils/imageStorage.js"
 
 import conDB from "./config/db.js"
-import authRoutes from "./route/authRoute.js"
+// import authRoutes from "./route/authRoute.js"
 import listingRoute from "./route/listingRoute.js"
 import farmerRoute from "./route/farmerRoute.js"
 import farmRoute from "./route/farmRoute.js"
@@ -42,13 +42,11 @@ const allowedOrigins = new Set(
 )
 
 app.use(cors({
-    origin(origin, callback) {
-        if (!origin || allowedOrigins.has(origin)) return callback(null, true)
-        return callback(new Error(`Origin ${origin} is not allowed by CORS`))
-    },
-    credentials: true,
-    maxAge: 50
-}))
+  origin: ["http://localhost:5173", "http://localhost:5174"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 app.set("trust proxy", 1);
 
@@ -68,6 +66,10 @@ app.use("/uploads/farms", express.static(path.join(UPLOADS_ROOT, "farms"), {
     maxAge: "7d",
     immutable: true
 }))
+app.use("/uploads/activities", express.static(path.join(UPLOADS_ROOT, "activities"), {
+    maxAge: "7d",
+    immutable: true
+}))
 
 app.use(express.json())
 
@@ -76,7 +78,7 @@ app.use(cookieparser())
 app.use(globalLimit)
 
 
-app.use("/api/auth", authRoutes)
+// app.use("/api/auth", authRoutes) // Authentication is handled by the external auth server.
 app.use("/api/farmers", farmerRoute)
 app.use("/api/farms", farmRoute)
 app.use("/api/verification", verificationRoute)

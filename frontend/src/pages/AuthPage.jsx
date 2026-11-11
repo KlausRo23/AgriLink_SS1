@@ -15,6 +15,17 @@ import heroImg from "../images/LandingPage.jpg";
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// SS1 answers unverified logins with a 403 + { message, status }, not a `code`
+function isUnverifiedError(error) {
+  const data = error.response?.data;
+  return (
+    error.response?.status === 403 &&
+    (data?.code === "EMAIL_NOT_VERIFIED" ||
+      String(data?.status || "").toUpperCase() === "UNVERIFIED" ||
+      /verify your email/i.test(data?.message || ""))
+  );
+}
+
 function Logo() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -97,13 +108,13 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      const { data } = await registerAccount(signup);
-      if (data.emailSent === false) {
-        setNotice(data.message);
-        setNoticeType("error");
-      } else {
-        setNotice("");
-      }
+      await registerAccount({
+        username: signup.username,
+        email: signup.email,
+        password: signup.password,
+        passwordConfirmation: signup.confirm,
+      });
+      setNotice("");
       setShowOtp(true);
     } catch (error) {
       setNotice(error.response?.data?.message || "Could not create your account. Please try again.");
@@ -137,10 +148,17 @@ export default function AuthPage() {
       await authenticate({ email: login.identifier, password: login.password });
       navigate("/farmer", { replace: true });
     } catch (error) {
-      if (error.response?.data?.code === "EMAIL_NOT_VERIFIED") {
-        setSignup((previous) => ({ ...previous, email: login.identifier.trim() }));
-        setNotice("Verify your email address to continue.");
+      if (isUnverifiedError(error)) {
+        const email = login.identifier.trim();
+        setSignup((previous) => ({ ...previous, email }));
+        setNotice("Verify your email address to continue. We sent you a new code.");
         setNoticeType("error");
+        // login doesn't send a code, so request one before opening the modal
+        try {
+          await resendVerificationCode(email);
+        } catch {
+          // the modal's Resend button is the fallback
+        }
         setShowOtp(true);
       } else {
         setNotice(error.response?.data?.message || error.message || "Could not log in. Please try again.");
@@ -297,7 +315,10 @@ export default function AuthPage() {
           email={signup.email}
           onClose={() => setShowOtp(false)}
           onVerified={handleVerified}
-          onVerify={({ code }) => verifyEmail({ email: signup.email, code })}
+          // SS1 only accepts "FARMER" / "BUYER", but the modal sends lowercase
+          onVerify={({ code, role }) =>
+            verifyEmail({ email: signup.email, code, role: role.toUpperCase() })
+          }
           onResend={() => resendVerificationCode(signup.email)}
         />
       )}

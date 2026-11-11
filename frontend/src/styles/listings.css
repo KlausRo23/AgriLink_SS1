@@ -943,6 +943,11 @@
 }
 
 .listing-detail-gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  column-gap: 12px;
   min-width: 0;
 }
 
@@ -950,10 +955,48 @@
   position: relative;
   display: grid;
   min-height: 410px;
+  grid-column: 1;
+  grid-row: 1;
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(107, 124, 81, 0.12);
   border-radius: 15px;
+}
+
+.listing-gallery-controls {
+  position: absolute;
+  inset: 50% 12px auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.listing-gallery-controls button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(25, 37, 25, 0.72);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.listing-gallery-controls button:hover {
+  background: rgba(25, 37, 25, 0.92);
+}
+
+.listing-gallery-controls > span {
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: rgba(25, 37, 25, 0.72);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 650;
 }
 
 .listing-detail-emoji {
@@ -980,21 +1023,42 @@
 
 .listing-detail-thumbnails {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 12px;
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-height: 410px;
+  overflow-y: auto;
+}
+
+.listing-detail-gallery.has-carousel {
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.listing-detail-gallery.has-carousel .listing-detail-main-image,
+.listing-detail-gallery.has-carousel .listing-detail-photo-count {
+  grid-column: 2;
 }
 
 .listing-detail-thumbnail {
-  display: grid;
-  width: 64px;
-  height: 55px;
+  position: relative;
+  display: block;
+  width: 58px;
+  height: 62px;
   flex: 0 0 auto;
-  place-items: center;
   overflow: hidden;
   border: 1px solid transparent;
   border-radius: 8px;
-  font-size: 1.8rem;
+  background: #e8edde;
+  cursor: pointer;
+}
+
+.listing-detail-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .listing-detail-thumbnail.is-selected {
@@ -1002,10 +1066,70 @@
   box-shadow: 0 0 0 2px #e1ead9;
 }
 
-.listing-detail-thumbnails p {
-  margin: 0 0 0 4px;
+.listing-thumbnail-day {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  left: 2px;
+  overflow: hidden;
+  padding: 2px 3px;
+  border-radius: 3px;
+  background: rgba(25, 37, 25, 0.72);
+  color: #fff;
+  font-size: 0.54rem;
+  font-weight: 650;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listing-thumbnail-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font-size: 1.6rem;
+}
+
+.listing-photo-day {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: rgba(54, 72, 47, 0.86);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.listing-photo-caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 30px 14px 14px;
+  background: linear-gradient(transparent, rgba(20, 28, 19, 0.78));
+  color: #fff;
+}
+
+.listing-photo-caption > span {
+  font-size: 0.68rem;
+}
+
+.listing-photo-caption > strong {
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+
+.listing-detail-photo-count {
+  grid-column: 1;
+  margin: 8px 0 0;
   color: #858d7c;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
 }
 
 .listing-detail-info {
@@ -1740,6 +1864,24 @@
     min-height: 330px;
   }
 
+  .listing-detail-gallery {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 9px;
+  }
+
+  .listing-detail-gallery.has-carousel {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .listing-detail-thumbnails {
+    max-height: 330px;
+  }
+
+  .listing-detail-thumbnail {
+    width: 54px;
+    height: 58px;
+  }
+
   .listing-detail-info {
     padding: 0;
   }
@@ -1888,10 +2030,6 @@
   .listing-care-legend {
     padding-right: 12px;
     padding-left: 12px;
-  }
-
-  .listing-detail-thumbnails p {
-    font-size: 0.67rem;
   }
 
   .listing-seller-verified {

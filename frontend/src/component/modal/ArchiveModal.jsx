@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Archive, Box, Check, Leaf, RotateCcw, Trash2, X } from "lucide-react"
 import { deleteArchivedItem, getArchivedItems, restoreArchivedItem } from "../../api/api"
+import toast from "react-hot-toast"
 import "../../styles/history.css"
 
 const ARCHIVE_TABS = [
@@ -123,7 +124,8 @@ function ArchiveModal({ isOpen, onClose, onChanged }) {
     try {
       await restoreArchivedItem(item.id)
       setItems((current) => current.filter((entry) => entry.id !== item.id))
-      setMessage(`${item.name} restored to your active items.`)
+      setMessage("")
+      toast.success(`${item.name} restored to your active items.`)
       await onChanged?.()
     } catch (requestError) {
       console.error("Could not restore archived item:", requestError)
@@ -141,7 +143,8 @@ function ArchiveModal({ isOpen, onClose, onChanged }) {
     try {
       await deleteArchivedItem(item.id)
       setItems((current) => current.filter((entry) => entry.id !== item.id))
-      setMessage(`${item.name} was permanently deleted.`)
+      setMessage("")
+      toast.success(`${item.name} permanently deleted.`)
       setConfirmingDelete(null)
       await onChanged?.()
     } catch (requestError) {
@@ -163,7 +166,7 @@ function ArchiveModal({ isOpen, onClose, onChanged }) {
         <header className="archive-modal-heading">
           <div>
             <h2 id="archive-modal-title">Archive</h2>
-            <p>Removed items are kept here. Restore them anytime, or delete them for good.</p>
+            <p>Removed items are kept here. Restore eligible items, or delete them for good.</p>
           </div>
           <button type="button" className="archive-modal-close" onClick={onClose} aria-label="Close archive">
             <X size={20} aria-hidden="true" />
@@ -189,6 +192,7 @@ function ArchiveModal({ isOpen, onClose, onChanged }) {
         <div className="archive-modal-list" aria-busy={isLoading}>
           {filteredItems.length ? filteredItems.map((item) => {
             const isCrop = item.itemType === "Crop" || (item.itemType === "Inventory" && item.info?.category === "crop")
+            const canRestore = item.itemType !== "Crop" || item.info?.status !== "harvested"
             const ItemIcon = isCrop ? Leaf : Box
             return (
               <article className="archive-modal-item" key={item.id}>
@@ -200,9 +204,11 @@ function ArchiveModal({ isOpen, onClose, onChanged }) {
                   <span>{archiveItemLabel(item)} · Archived {formatArchivedAt(item.archivedAt)}</span>
                 </div>
                 <div className="archive-modal-item-actions">
-                  <button type="button" className="archive-restore-button" disabled={pendingId === item.id} onClick={() => restoreItem(item)}>
-                    <RotateCcw size={13} aria-hidden="true" /> Restore
-                  </button>
+                  {canRestore && (
+                    <button type="button" className="archive-restore-button" disabled={pendingId === item.id} onClick={() => restoreItem(item)}>
+                      <RotateCcw size={13} aria-hidden="true" /> Restore
+                    </button>
+                  )}
                   <button type="button" className="archive-delete-button" disabled={pendingId === item.id} onClick={() => setConfirmingDelete(item)}>
                     <Trash2 size={13} aria-hidden="true" /> Delete
                   </button>

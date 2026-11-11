@@ -21,8 +21,10 @@ function formatDate(value) {
 
 function InventoryCard({ item, onView, onEdit, onArchive }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [failedImage, setFailedImage] = useState("")
   const status = STATUS_LABELS[item.status] ? item.status : "fresh"
   const categoryLabel = item.category === "supply" ? "Farm supply" : "Harvested crop"
+  const image = item.image || ""
 
   function runAction(action) {
     setIsMenuOpen(false)
@@ -38,8 +40,8 @@ function InventoryCard({ item, onView, onEdit, onArchive }) {
         aria-label={`View ${item.name} inventory details`}
       />
       <div className={`inventory-card-visual inventory-visual--${item.visual || "leafy"}`}>
-        {item.image ? (
-          <img src={item.image} alt="" />
+        {image && failedImage !== image ? (
+          <img src={image} alt={`${item.name} inventory`} onError={() => setFailedImage(image)} />
         ) : (
           <div className="inventory-visual-art" aria-hidden="true">
             <span className="inventory-visual-glow" />

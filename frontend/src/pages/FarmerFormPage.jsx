@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import { useFormContext } from "../context/useFormContext"
 import "../styles/Farmerformpage.css"
 
@@ -334,6 +335,7 @@ function FarmerFormPage() {
     setSubmitting(true)
     try {
       await submitFarmer(formData)
+      toast.success("Farmer profile saved.")
       navigate("/farm", { replace: true })
     } catch (error) {
       const serverFields = error.response?.data?.data

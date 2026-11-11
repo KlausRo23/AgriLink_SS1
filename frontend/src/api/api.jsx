@@ -3,56 +3,52 @@ import axios from "axios"
 const ACCESS_TOKEN_KEY = "agrilink.accessToken"
 const AUTH_CHANGE_EVENT = "agrilink:auth-change"
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "")
+// "/ss1/api" is proxied to SS1's ngrok URL by vite.config.js
+const AUTH_API_BASE_URL = (import.meta.env.VITE_AUTH_API_URL || "/ss1/api").replace(/\/+$/, "")
+const PRIVACY_POLICY_VERSION = import.meta.env.VITE_PRIVACY_POLICY_VERSION || "2026-11-09"
+const API_URL = new URL(API_BASE_URL)
+const API_ORIGIN = API_URL.origin
+
+if (import.meta.env.DEV) {
+  console.info("[axios] API:", API_BASE_URL, "| AUTH API:", AUTH_API_BASE_URL)
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
 })
 
-let refreshRequest = null
+const authApi = axios.create({
+  baseURL: AUTH_API_BASE_URL,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+})
 
 export function getAssetUrl(path) {
   if (!path) return ""
-  return new URL(path, API_BASE_URL).toString()
+  const assetUrl = new URL(path, API_BASE_URL)
+  if (assetUrl.pathname.startsWith("/uploads/") && assetUrl.hostname === API_URL.hostname) {
+    return new URL(`${assetUrl.pathname}${assetUrl.search}${assetUrl.hash}`, API_ORIGIN).toString()
+  }
+  return assetUrl.toString()
 }
 
-api.interceptors.request.use((config) => {
+function attachToken(config) {
   const accessToken = window.sessionStorage.getItem(ACCESS_TOKEN_KEY)
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`
   return config
-})
+}
 
+api.interceptors.request.use(attachToken)
+authApi.interceptors.request.use(attachToken)
+
+// No refresh endpoint on SS1: an expired or invalid token just means "log in again"
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const request = error.config
-    if (
-      error.response?.status !== 401
-      || !request
-      || request._retry
-      || request.url?.includes("/auth/")
-      || !getAccessToken()
-    ) {
-      return Promise.reject(error)
-    }
-
-    request._retry = true
-    try {
-      if (!refreshRequest) {
-        refreshRequest = api.post("/auth/refresh").finally(() => {
-          refreshRequest = null
-        })
-      }
-      const { data } = await refreshRequest
-      const accessToken = data?.data?.accessToken
-      if (!accessToken) throw new Error("The session refresh response did not include an access token.")
-      setAccessToken(accessToken)
-      request.headers.Authorization = `Bearer ${accessToken}`
-      return api(request)
-    } catch (refreshError) {
-      clearAccessToken()
-      return Promise.reject(refreshError)
-    }
+  (error) => {
+    if (error.response?.status === 401 && getAccessToken()) clearAccessToken()
+    return Promise.reject(error)
   },
 )
 
@@ -75,32 +71,39 @@ export function subscribeToAuthChanges(listener) {
   return () => window.removeEventListener(AUTH_CHANGE_EVENT, listener)
 }
 
-export function registerAccount({ username, email, password }) {
-  return api.post("/auth/register", {
-    name: username.trim(),
+export function registerAccount({
+  email,
+  password,
+  passwordConfirmation = password,
+  privacyPolicyVersion = PRIVACY_POLICY_VERSION,
+}) {
+  return authApi.post("/auth/register", {
     email: email.trim(),
     password,
+    passwordConfirmation,
+    privacyPolicyVersion,
   })
 }
 
-export function verifyEmail({ email, code }) {
-  return api.post("/auth/verify-otp", { email, otp: code })
+export function verifyEmail({ email, code, role }) {
+  // role must be "FARMER" or "BUYER" (uppercase) for SS1
+  return authApi.post("/auth/verify-email", { email: email.trim(), code, role })
 }
 
 export function resendVerificationCode(email) {
-  return api.post("/auth/resend-otp", { email })
+  return authApi.post("/auth/resend-verification-code", {
+    email: email.trim(),
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+  })
 }
 
 export function loginAccount({ email, password }) {
-  return api.post("/auth/login", { email: email.trim(), password })
+  // SS1 responds with { message, token, nextStep, user }
+  return authApi.post("/auth/login", { email: email.trim(), password })
 }
 
-export function refreshAccount() {
-  return api.post("/auth/refresh")
-}
-
-export function logoutAccount() {
-  return api.post("/auth/logout")
+export function getCurrentUser() {
+  return authApi.get("/auth/me")
 }
 
 export function changeAccountPassword(data) {
@@ -269,6 +272,14 @@ export function archiveCrop(id, reason = "Archived by farmer") {
 
 export function harvestCrop(id, formData) {
   return api.post(`/crops/harvest/${id}`, formData)
+}
+
+export function getCropCalendar(id, month) {
+  return api.get(`/schedule/crop/${id}/calendar`, { params: { month } })
+}
+
+export function saveCropActivity(id, date, formData) {
+  return api.put(`/schedule/crop/${id}/day/${date}`, formData)
 }
 
 export default api

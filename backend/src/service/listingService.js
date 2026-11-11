@@ -1,6 +1,7 @@
 import mongoose from "mongoose"
 import Listing from "../model/Listing.js"
 import Inventory from "../model/Inventory.js"
+import Archive from "../model/Archive.js"
 import Farmer from "../model/Farmer.js"
 import Farm from "../model/Farm.js"
 import Crop from "../model/Crop.js"
@@ -118,13 +119,20 @@ async function buildCareLog(listing) {
     if (!listing.crop) return null
 
     const [crop, entries] = await Promise.all([
-        Crop.findById(listing.crop).select("datePlanted actualHarvestDate isOrganic").lean(),
+        Crop.findOne({ _id: listing.crop, owner: listing.owner })
+            .select("datePlanted actualHarvestDate isOrganic")
+            .lean(),
         Schedule.find({ crop: listing.crop, owner: listing.owner })
             .sort({ date: 1 })
             .limit(MAX_CARE_ENTRIES)
             .lean()
     ])
-    if (!crop) return null
+    const cropDetails = crop || (await Archive.findOne({
+        itemType: "Crop",
+        originalId: listing.crop,
+        owner: listing.owner
+    }).select("snapshot").lean())?.snapshot
+    if (!cropDetails) return null
 
     const summary = Object.fromEntries(ACTIVITY_ACTIONS.map((a) => [a, 0]))
     for (const entry of entries) {
@@ -133,13 +141,13 @@ async function buildCareLog(listing) {
 
     const base = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "")
     return {
-        isOrganic: Boolean(crop.isOrganic),
-        datePlanted: dayKey(crop.datePlanted),
-        harvestedOn: crop.actualHarvestDate ? dayKey(crop.actualHarvestDate) : null,
+        isOrganic: Boolean(cropDetails.isOrganic),
+        datePlanted: dayKey(cropDetails.datePlanted),
+        harvestedOn: cropDetails.actualHarvestDate ? dayKey(cropDetails.actualHarvestDate) : null,
         summary,
         entries: entries.map((e) => ({
             date: dayKey(e.date),
-            dayOfGrowing: Math.floor((utcDay(e.date) - utcDay(crop.datePlanted)) / DAY_MS) + 1,
+            dayOfGrowing: Math.floor((utcDay(e.date) - utcDay(cropDetails.datePlanted)) / DAY_MS) + 1,
             actions: e.actions,
             note: e.note,
             photoUrl: e.photo ? `${base}${e.photo}` : null

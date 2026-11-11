@@ -53,7 +53,7 @@ function ListingCareHistory({ careLog }) {
         if (action in counts) counts[action] += 1
       }
     }
-    return careLog?.summary || counts
+    return careLog?.entries?.length ? counts : { ...counts, ...careLog?.summary }
   }, [careLog])
 
   const calendarDays = useMemo(() => {

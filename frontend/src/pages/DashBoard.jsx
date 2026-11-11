@@ -276,6 +276,7 @@ function Dashboard() {
     upcomingHarvests,
     listings,
     recentListings,
+    salesTotal: salesData?.total ?? null,
   }
 
   return (

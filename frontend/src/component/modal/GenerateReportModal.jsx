@@ -2,6 +2,9 @@ import { useEffect, useState } from "react"
 import { BarChart3, Check, Download, Leaf, X } from "lucide-react"
 import "../../styles/dashboard.css"
 
+const currency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" })
+const reportDateFormatter = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" })
+
 function GenerateReportModal({ open, onClose, reportData }) {
   const [generated, setGenerated] = useState(false)
   const [generationError, setGenerationError] = useState("")
@@ -19,14 +22,25 @@ function GenerateReportModal({ open, onClose, reportData }) {
 
   if (!open) return null
 
-  const { farmName, farmerName, reportDate, period, attention, stocks, freshness, upcomingHarvests, listings, recentListings } = reportData
-  const freshnessTotal = freshness.fresh + freshness.nearSpoiling + freshness.spoiled
-  const freshEnd = freshnessTotal ? (freshness.fresh / freshnessTotal) * 100 : 0
-  const nearEnd = freshnessTotal ? ((freshness.fresh + freshness.nearSpoiling) / freshnessTotal) * 100 : 0
-  const freshnessBackground = freshnessTotal
-    ? `conic-gradient(#526b3a 0% ${freshEnd}%, #c99d3b ${freshEnd}% ${nearEnd}%, #c5573c ${nearEnd}% 100%)`
-    : "#e6e9e0"
-  const maxStock = Math.max(...stocks.map((item) => item.quantity), 1)
+  const {
+    farmName,
+    farmerName,
+    reportDate,
+    period,
+    attention,
+    freshness,
+    upcomingHarvests,
+    listings,
+    recentListings,
+    salesTotal,
+  } = reportData
+  const inventoryTotal = freshness.fresh + freshness.nearSpoiling + freshness.spoiled
+  const summary = [
+    { label: "Inventory items", value: inventoryTotal },
+    { label: "Growing crops", value: attention.find((item) => item.label === "Growing crops")?.value ?? 0 },
+    { label: "Need attention", value: freshness.nearSpoiling + freshness.spoiled },
+    { label: "Listings pending", value: listings.pending ?? 0 },
+  ]
 
   function printReport() {
     setGenerationError("")
@@ -57,7 +71,7 @@ function GenerateReportModal({ open, onClose, reportData }) {
             <span className="report-modal-title-icon"><BarChart3 size={20} aria-hidden="true" /></span>
             <div>
               <h2 id="report-modal-title">Farm dashboard report</h2>
-              <p id="report-modal-description">A printable snapshot of the information on your dashboard.</p>
+              <p id="report-modal-description">A concise summary of your farm’s current status.</p>
             </div>
           </div>
           <button type="button" className="dashboard-icon-button report-modal-close" onClick={onClose} aria-label="Close report dialog">
@@ -66,14 +80,14 @@ function GenerateReportModal({ open, onClose, reportData }) {
         </header>
 
         <div className="report-modal-content">
-          <article className="report-document" aria-label="Farm dashboard report preview">
+          <article className="report-document" aria-label="Farm dashboard summary report">
             <header className="report-document-header">
               <div>
                 <span className="report-document-brand"><Leaf size={17} aria-hidden="true" /> AgriLink</span>
-                <h3>Farm Dashboard Report</h3>
-                <p>Dashboard summary for {period.toLowerCase()}</p>
+                <h3>Farm Summary</h3>
+                <p>{period}</p>
               </div>
-              <span className="report-document-period">{period}</span>
+              <span className="report-document-period">{reportDate}</span>
             </header>
 
             <dl className="report-document-meta">
@@ -83,111 +97,72 @@ function GenerateReportModal({ open, onClose, reportData }) {
             </dl>
 
             <section className="report-document-section">
-              <div className="report-document-section-heading">
-                <h4>Needs attention</h4>
-                <span>Current farm status</span>
-              </div>
-              <div className="report-attention-grid">
-                {attention.map((item) => (
-                  <div className="report-attention-card" key={item.label}>
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                    <small>{item.note}</small>
+              <h4>At a glance</h4>
+              <dl className="report-summary-grid">
+                {summary.map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
                   </div>
                 ))}
-              </div>
+              </dl>
+              {salesTotal !== null && salesTotal !== undefined && (
+                <p className="report-summary-sales">Lifetime completed-order sales <strong>{currency.format(salesTotal)}</strong></p>
+              )}
             </section>
 
-            <div className="report-document-chart-grid">
-              <section className="report-document-section report-chart-card">
-                <div className="report-document-section-heading">
-                  <h4>Stock levels</h4>
-                  <span>Current quantity by item</span>
-                </div>
-                <div className="report-stock-chart">
-                  {stocks.map((item) => (
-                    <div className="report-stock-column" key={item.id}>
-                      <strong>{item.quantity}</strong>
-                      <span className={`report-stock-bar is-${item.status === "healthy" ? "stock" : "low"}`} style={{ height: `${Math.max(4, (item.quantity / maxStock) * 100)}%` }} />
-                      <small>{item.name}</small>
+            <div className="report-summary-columns">
+              <section className="report-document-section">
+                <h4>Inventory condition</h4>
+                <dl className="report-summary-list">
+                  <div><dt>Fresh</dt><dd>{freshness.fresh}</dd></div>
+                  <div><dt>Near spoiling</dt><dd>{freshness.nearSpoiling}</dd></div>
+                  <div><dt>Spoiled</dt><dd>{freshness.spoiled}</dd></div>
+                </dl>
+              </section>
+              <section className="report-document-section">
+                <h4>Listings</h4>
+                <dl className="report-summary-list">
+                  {Object.entries(listings).map(([status, count]) => (
+                    <div key={status}>
+                      <dt>{status[0].toUpperCase() + status.slice(1)}</dt>
+                      <dd>{count}</dd>
                     </div>
                   ))}
-                </div>
-                <p className="report-chart-legend"><i className="is-stock" /> In stock <i className="is-low" /> Low stock</p>
-              </section>
-
-              <section className="report-document-section report-chart-card">
-                <div className="report-document-section-heading">
-                  <h4>Listing status</h4>
-                  <span>Your product submissions</span>
-                </div>
-                <ul className="report-freshness-legend">
-                  {Object.entries(listings).map(([status, count]) => (
-                    <li key={status}><span>{status[0].toUpperCase() + status.slice(1)}</span><strong>{count}</strong></li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="report-document-section report-chart-card">
-                <div className="report-document-section-heading">
-                  <h4>Freshness</h4>
-                  <span>Inventory condition at a glance</span>
-                </div>
-                <div className="report-freshness-layout">
-                  <div className="report-freshness-donut" style={{ background: freshnessBackground }}>
-                    <div><strong>{freshnessTotal}</strong><span>items</span></div>
-                  </div>
-                  <ul className="report-freshness-legend">
-                    <li><span><i className="is-fresh" /> Fresh</span><strong>{freshness.fresh}</strong></li>
-                    <li><span><i className="is-near" /> Near spoiling</span><strong>{freshness.nearSpoiling}</strong></li>
-                    <li><span><i className="is-spoiled" /> Spoiled</span><strong>{freshness.spoiled}</strong></li>
-                  </ul>
-                </div>
-              </section>
-
-              <section className="report-document-section report-chart-card">
-                <div className="report-document-section-heading">
-                  <h4>Upcoming harvests</h4>
-                  <span>Ready dates for active crops</span>
-                </div>
-                {upcomingHarvests.length ? (
-                  <ul className="report-harvest-list">
-                    {upcomingHarvests.map((crop) => (
-                      <li key={crop.id}>
-                        <div><strong>{crop.name}</strong><span>{crop.lifecycleStatus === "ready-to-harvest" ? "Ready" : `${crop.daysUntilHarvest}d left`}</span></div>
-                        <span className="report-harvest-track"><i style={{ width: `${crop.harvestProgress}%` }} /></span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : <p className="report-document-empty">No upcoming harvest dates are scheduled.</p>}
+                </dl>
               </section>
             </div>
 
-            <section className="report-document-section report-orders-section">
-              <div className="report-document-section-heading">
-                <h4>Recent listings</h4>
-                <span>Latest product submissions</span>
-              </div>
+            <section className="report-document-section report-summary-section">
+              <h4>Upcoming harvests</h4>
+              {upcomingHarvests.length ? (
+                <ul className="report-summary-items">
+                  {upcomingHarvests.slice(0, 4).map((crop) => (
+                    <li key={crop.id}>
+                      <strong>{crop.name}</strong>
+                      <span>{crop.lifecycleStatus === "ready-to-harvest" ? "Ready" : `${crop.daysUntilHarvest} days`}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="report-document-empty">No upcoming harvest dates are scheduled.</p>}
+            </section>
+
+            <section className="report-document-section report-summary-section">
+              <h4>Recent listings</h4>
               {recentListings.length ? (
-                <table className="report-orders-table">
-                  <thead><tr><th>Product</th><th>Quantity</th><th>Price</th><th>Date submitted</th><th>Status</th></tr></thead>
-                  <tbody>
-                    {recentListings.map((listing) => (
-                      <tr key={listing.id}>
-                        <td>{listing.name}</td>
-                        <td>{listing.stock} {listing.unit}</td>
-                        <td>{new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(listing.price)}</td>
-                        <td>{new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(new Date(listing.createdAt))}</td>
-                        <td>{listing.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <ul className="report-summary-items">
+                  {recentListings.slice(0, 4).map((listing) => (
+                    <li key={listing.id}>
+                      <strong>{listing.name} · {listing.stock} {listing.unit}</strong>
+                      <span>{listing.status} · {reportDateFormatter.format(new Date(listing.createdAt))}</span>
+                    </li>
+                  ))}
+                </ul>
               ) : <p className="report-document-empty">No recent listings.</p>}
             </section>
 
             <footer className="report-document-footer">
-              <span>AgriLink · Farm dashboard report</span>
+              <span>AgriLink · Farm summary</span>
               <span>{reportDate}</span>
             </footer>
           </article>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, BellRing, Boxes, CalendarDays, Clock3, Leaf, PackageCheck, Pencil, ShieldCheck, Store } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
+import toast from "react-hot-toast"
 import AddInventoryListingModal from "../component/modal/AddInventoryListingModal"
 import ReminderModal from "../component/modal/ReminderModal"
 import { createListing, getInventoryItem } from "../api/api"
@@ -96,6 +97,7 @@ function InventoryDetail() {
         price,
         description,
       })
+      toast.success(`${item.name} submitted as a listing.`)
     } catch (error) {
       throw new Error(error.response?.data?.message || "Could not submit this listing.", { cause: error })
     }

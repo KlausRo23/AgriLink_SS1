@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   clearAccessToken,
   getAccessToken,
+  getCurrentUser,
   loginAccount,
-  logoutAccount,
-  refreshAccount,
   setAccessToken,
   subscribeToAuthChanges,
 } from "../api/api"
@@ -18,35 +17,31 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const loadingRef = useRef(true)
 
+  // SS1 has no refresh endpoint: if a token is stored, ask /auth/me who it belongs to
   const refreshSession = useCallback(async () => {
-    if (!loadingRef.current) {
-      loadingRef.current = true
-      setLoading(true)
-      setError("")
+    if (!getAccessToken()) {
+      setUser(null)
+      setLoading(false)
+      return null
     }
     try {
-      const { data } = await refreshAccount()
-      const session = data?.data
-      if (!session?.accessToken || !session.user) {
-        throw new Error("The session response was incomplete.")
-      }
+      const { data } = await getCurrentUser()
+      if (!data?.user) throw new Error("The session response was incomplete.")
       setError("")
-      setAccessToken(session.accessToken)
-      setUser(session.user)
-      return session.user
+      setUser(data.user)
+      return data.user
     } catch (requestError) {
-      clearAccessToken()
-      setUser(null)
-      if (![401, 404].includes(requestError.response?.status)) {
-        setError(getErrorMessage(requestError))
-      } else {
+      const status = requestError.response?.status
+      if ([401, 403, 404].includes(status)) {
+        clearAccessToken() // expired or invalid token -> back to login
         setError("")
+      } else {
+        setError(getErrorMessage(requestError))
       }
+      setUser(null)
       return null
     } finally {
-      loadingRef.current = false
       setLoading(false)
     }
   }, [])
@@ -61,28 +56,29 @@ export function AuthProvider({ children }) {
     }
   }, [refreshSession])
 
-  useEffect(() => subscribeToAuthChanges(() => {
-    if (!getAccessToken()) setUser(null)
-  }), [])
+  useEffect(
+    () =>
+      subscribeToAuthChanges(() => {
+        if (!getAccessToken()) setUser(null)
+      }),
+    [],
+  )
 
+  // SS1 login response: { message, token, nextStep, user }
   const login = useCallback(async (credentials) => {
     const { data } = await loginAccount(credentials)
-    if (!data?.accessToken || !data.user) {
+    if (!data?.token || !data.user) {
       throw new Error("The login response was incomplete.")
     }
-    setAccessToken(data.accessToken)
+    setAccessToken(data.token)
     setUser(data.user)
     setError("")
-    return data.user
+    return { user: data.user, nextStep: data.nextStep }
   }, [])
 
   const logout = useCallback(async () => {
-    try {
-      await logoutAccount()
-    } finally {
-      clearAccessToken()
-      setUser(null)
-    }
+    clearAccessToken() // nothing to call on SS1, the token just gets dropped
+    setUser(null)
   }, [])
 
   const value = {

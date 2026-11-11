@@ -11,6 +11,7 @@ import {
     processCropPhoto,
     deleteCropPhoto,
     processInventoryPhoto,
+    copyCropPhotoToInventory,
     deleteInventoryPhoto
 } from "../utils/imageProcessor.js"
 import { presentInventory } from "./inventoryService.js"
@@ -124,6 +125,25 @@ export async function getAllCrops(query, requester) {
     assertCanManageCrops(requester)
     const { filter, page, limit, errors, isValid } = parseCropListQuery(query)
     if (!isValid) throw new AppError("Invalid query", 400, errors)
+
+    const harvestedCrops = await Crop.find({
+        owner: requester.id,
+        status: CROP_STATUS.HARVESTED
+    }).select("_id").lean()
+
+    for (const crop of harvestedCrops) {
+        try {
+            await archiveItem("Crop", String(crop._id), "Harvested", requester)
+        } catch (error) {
+            if (error.statusCode !== 404) throw error
+            const alreadyArchived = await Archive.exists({
+                itemType: "Crop",
+                originalId: crop._id,
+                owner: requester.id
+            })
+            if (!alreadyArchived) throw error
+        }
+    }
 
     const scoped = { ...filter, owner: requester.id }
 
@@ -254,6 +274,7 @@ export async function harvestCrop(id, body, file, requester) {
     // The image is verified and processed before anything is changed
     let imagePath
     if (file) imagePath = await processInventoryPhoto(file.buffer)
+    else if (crop.image) imagePath = await copyCropPhotoToInventory(crop.image)
 
     // Atomic flip: only one request can move this crop from "growing" to "harvested"
     const previous = await Crop.findOneAndUpdate(
@@ -276,6 +297,7 @@ export async function harvestCrop(id, body, file, requester) {
 
     let inventory
     let listing = null
+    let updated
     try {
         inventory = await Inventory.create({
             name: crop.name,
@@ -300,6 +322,9 @@ export async function harvestCrop(id, body, file, requester) {
                 description: (data.notes || crop.description || `Fresh ${crop.name.toLowerCase()} from the farm.`).slice(0, 300)
             }, requester)
         }
+        updated = await Crop.findById(crop._id).lean()
+        if (!updated) throw new AppError("Harvested crop could not be found", 500)
+        await archiveItem("Crop", id, "Harvested", requester)
     } catch (err) {
         try {
             if (inventory) {
@@ -329,7 +354,6 @@ export async function harvestCrop(id, body, file, requester) {
         throw err
     }
 
-    const updated = await Crop.findById(crop._id).lean()
     await recordHistory("harvested", requester.id, crop._id, previous.toObject(), {
         ...updated,
         quantity: data.quantity,

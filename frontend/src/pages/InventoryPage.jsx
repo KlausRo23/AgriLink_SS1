@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Archive, Boxes, Clock3, Filter, ImagePlus, Leaf, Plus, Search, X } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import InventoryCard from "../component/card/InventoryCard"
 import InventoryLogModal from "../component/modal/InventoryLogModal"
 import { CROP_SPECIALTIES } from "../data/cropSpecialties"
@@ -321,7 +322,8 @@ function InventoryPage() {
         ? current.map((entry) => entry.id === savedItem.id ? savedItem : entry)
         : [savedItem, ...current])
       setDialog(null)
-      setNotice(`${savedItem.name} ${itemAlreadyExists ? "updated" : "added"} in your inventory.`)
+      setNotice("")
+      toast.success(`${savedItem.name} ${itemAlreadyExists ? "updated" : "added"} in your inventory.`)
     } catch (error) {
       const message = error.response?.data?.message || `Could not ${itemAlreadyExists ? "update" : "add"} this item.`
       setActionError(message)
@@ -338,7 +340,8 @@ function InventoryPage() {
       await archiveInventoryItem(id)
       setInventory((current) => current.filter((item) => item.id !== id))
       setDialog(null)
-      setNotice("Item archived from your inventory.")
+      setNotice("")
+      toast.success("Item archived from your inventory.")
     } catch (error) {
       setActionError(error.response?.data?.message || "Could not archive this inventory item.")
     } finally {

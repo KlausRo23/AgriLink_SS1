@@ -1,10 +1,11 @@
 import mongoose from "mongoose"
 import Inventory from "../model/Inventory.js"
 import Archive from "../model/Archive.js"
+import Crop from "../model/Crop.js"
 import History from "../model/History.js"
 import AppError from "../utils/AppError.js"
 import { validateInventoryInput, parseInventoryListQuery } from "../utils/inventoryValidator.js"
-import { processInventoryPhoto, deleteInventoryPhoto } from "../utils/imageProcessor.js"
+import { processInventoryPhoto, copyCropPhotoToInventory, deleteInventoryPhoto } from "../utils/imageProcessor.js"
 import { SOURCE_TYPES } from "../constant/inventory.js"
 import { archiveItem } from "./archiveService.js"
 
@@ -44,6 +45,43 @@ export function presentInventory(item) {
     return { ...rest, imageUrl: image ? `${base}${image}` : null, daysToExpire, isExpired, status }
 }
 
+async function restoreHarvestPhotos(items, owner) {
+    const missingPhotos = items.filter((item) => item.sourceType === SOURCE_TYPES.HARVEST && !item.image && item.crop)
+    if (!missingPhotos.length) return
+
+    const cropIds = missingPhotos.map((item) => item.crop)
+    const [activeCrops, archivedCrops] = await Promise.all([
+        Crop.find({ _id: { $in: cropIds }, owner }).select("_id image").lean(),
+        Archive.find({ itemType: "Crop", originalId: { $in: cropIds }, owner })
+            .select("originalId snapshot")
+            .lean()
+    ])
+    const imageByCropId = new Map(activeCrops.filter((crop) => crop.image).map((crop) => [String(crop._id), crop.image]))
+    for (const archivedCrop of archivedCrops) {
+        if (archivedCrop.snapshot?.image) {
+            imageByCropId.set(String(archivedCrop.originalId), archivedCrop.snapshot.image)
+        }
+    }
+
+    for (const item of missingPhotos) {
+        const cropImage = imageByCropId.get(String(item.crop))
+        if (!cropImage) continue
+
+        const imagePath = await copyCropPhotoToInventory(cropImage)
+        try {
+            const result = await Inventory.updateOne(
+                { _id: item._id, owner, image: null },
+                { $set: { image: imagePath } }
+            )
+            if (result.modifiedCount) item.image = imagePath
+            else await deleteInventoryPhoto(imagePath)
+        } catch (error) {
+            await deleteInventoryPhoto(imagePath)
+            throw error
+        }
+    }
+}
+
 // Best effort: history writes must never break the real inventory operation.
 async function recordInventoryHistory(action, item, previousState, newState = null) {
     try {
@@ -72,6 +110,8 @@ export async function getAllInventory(query, requester) {
         Inventory.find(scoped).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
         Inventory.countDocuments(scoped)
     ])
+
+    await restoreHarvestPhotos(items, requester.id)
 
     return {
         items: items.map(presentInventory),

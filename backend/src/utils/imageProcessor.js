@@ -73,6 +73,21 @@ export const processCropPhoto = (buffer) =>
 export const processInventoryPhoto = (buffer) =>
     processImage(buffer, { folder: "inventory", width: 800, height: 800, minSize: 200 })
 
+export async function copyCropPhotoToInventory(relativePath) {
+    const prefix = "/uploads/crops/"
+    if (typeof relativePath !== "string" || !relativePath.startsWith(prefix)) {
+        throw new AppError("Crop photo path is invalid", 500)
+    }
+
+    const filename = relativePath.slice(prefix.length)
+    if (!filename || path.basename(filename) !== filename) {
+        throw new AppError("Crop photo path is invalid", 500)
+    }
+
+    const buffer = await fs.readFile(path.join(UPLOAD_ROOT, "crops", filename))
+    return processInventoryPhoto(buffer)
+}
+
 export const processActivityPhoto = (buffer) =>
     processImage(buffer, { folder: "activities", width: 1200, height: 900, minSize: 200 })
 

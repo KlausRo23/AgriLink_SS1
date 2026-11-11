@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 import { CROP_SPECIALTIES } from "../data/cropSpecialties"
 import { DELIVERY_MODES, normalizeDeliveryModes } from "../data/deliveryModes"
 import {
@@ -7,11 +8,9 @@ import {
   getAssetUrl,
   getMyFarmProfile,
   getMyFarmerProfile,
-  getUserSettings,
   updateFarmProfile,
   updateFarmerProfile,
   updateUserRegion,
-  updateUserSettings,
   setAccessToken,
 } from "../api/api"
 import {
@@ -20,6 +19,7 @@ import {
 } from "lucide-react"
 import LogoutModal from "../component/modal/LogoutModal"
 import { useAuth } from "../context/useAuth"
+import { useSettings } from "../context/useSettings"
 import { useFormContext } from "../context/useFormContext"
 import "../styles/settings.css"
 
@@ -49,8 +49,6 @@ const REGIONS = [
 ]
 const SUFFIXES = ["Jr", "Sr", "I", "II", "III"]
 const EMPTY_SETTINGS = {
-  theme: "light",
-  fontSize: "default",
   account: {
     firstName: "",
     middleName: "",
@@ -75,10 +73,8 @@ const EMPTY_SETTINGS = {
   },
 }
 
-function mapSettingsResponse(preferences, farmer, farm, userEmail) {
+function mapSettingsResponse(farmer, farm, userEmail) {
   return {
-    theme: preferences?.theme || EMPTY_SETTINGS.theme,
-    fontSize: preferences?.fontSize || EMPTY_SETTINGS.fontSize,
     account: {
       firstName: farmer.firstName || "",
       middleName: farmer.middleName || "",
@@ -105,8 +101,7 @@ function mapSettingsResponse(preferences, farmer, farm, userEmail) {
 }
 
 async function fetchSettingsData(userEmail) {
-  const [preferencesResponse, farmerResponse, farmResponse] = await Promise.all([
-    getUserSettings(),
+  const [farmerResponse, farmResponse] = await Promise.all([
     getMyFarmerProfile(),
     getMyFarmProfile(),
   ])
@@ -115,7 +110,7 @@ async function fetchSettingsData(userEmail) {
   if (!farmer?._id || !farm?._id) throw new Error("Your farmer or farm profile could not be loaded.")
 
   return {
-    settings: mapSettingsResponse(preferencesResponse.data?.settings, farmer, farm, userEmail),
+    settings: mapSettingsResponse(farmer, farm, userEmail),
     farmer,
     farm,
   }
@@ -154,6 +149,17 @@ function SettingsCard({ title, description, children, className = "" }) {
 function SettingPage() {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
+  const {
+    preferences,
+    savedPreferences,
+    loading: preferencesLoading,
+    error: preferencesError,
+    setTheme,
+    setFontSize,
+    savePreferences,
+    resetPreferences,
+    reloadPreferences,
+  } = useSettings()
   const { status: onboardingStatus } = useFormContext()
   const [settings, setSettings] = useState(EMPTY_SETTINGS)
   const [farmerId, setFarmerId] = useState("")
@@ -163,6 +169,8 @@ function SettingPage() {
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
   const [notice, setNotice] = useState("")
+  const [noticeKind, setNoticeKind] = useState("")
+  const [discardOpen, setDiscardOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState(false)
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" })
   const [passwordError, setPasswordError] = useState("")
@@ -179,6 +187,7 @@ function SettingPage() {
   const profilePhotoUrl = useRef("")
   const farmPhotoInput = useRef(null)
   const farmPhotoUrl = useRef("")
+  const savedSettings = useRef(EMPTY_SETTINGS)
 
   const loadSettings = useCallback(async () => {
     setIsLoading(true)
@@ -186,6 +195,7 @@ function SettingPage() {
     try {
       const { settings: loadedSettings, farmer, farm } = await fetchSettingsData(user?.email)
       setSettings(loadedSettings)
+      savedSettings.current = loadedSettings
       setFarmerId(String(farmer._id))
       setFarmId(String(farm._id))
       setProfilePhoto(farmer.profile ? getAssetUrl(farmer.profile) : "")
@@ -201,10 +211,13 @@ function SettingPage() {
   }, [user])
 
   useEffect(() => {
-    if (isLoading) return
-    document.documentElement.dataset.appearance = settings.theme
-    document.documentElement.dataset.fontSize = settings.fontSize
-  }, [isLoading, settings.fontSize, settings.theme])
+    if (!discardOpen) return undefined
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setDiscardOpen(false)
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [discardOpen])
 
   useEffect(() => () => {
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
@@ -225,20 +238,17 @@ function SettingPage() {
       [section]: { ...current[section], [key]: value },
     }))
     setNotice("")
+    setNoticeKind("")
   }
 
   async function saveSettings(event) {
     event?.preventDefault()
     setSaving(true)
     setNotice("")
+    setNoticeKind("")
     try {
       if (activeTab === "general") {
-        const { data } = await updateUserSettings({
-          theme: settings.theme,
-          fontSize: settings.fontSize,
-        })
-        setSettings((current) => ({ ...current, ...data.settings }))
-        setNotice("Preferences saved to your account.")
+        await savePreferences(preferences)
       } else if (activeTab === "account") {
         if (!settings.account.region) throw new Error("Choose the region where you farm.")
         const formData = new FormData()
@@ -253,7 +263,10 @@ function SettingPage() {
         setProfilePhotoFile(null)
         setProfilePhoto(data.data.profile ? getAssetUrl(data.data.profile) : "")
         setEditingAccount(false)
-        setNotice("Account profile saved.")
+        savedSettings.current = {
+          ...savedSettings.current,
+          account: { ...settings.account },
+        }
       } else {
         if (!settings.farm.deliveryMode.length || !settings.farm.deliverableRegions.length) {
           throw new Error("Choose at least one delivery method and one delivery region.")
@@ -268,11 +281,22 @@ function SettingPage() {
         farmPhotoUrl.current = ""
         setFarmPhotoFile(null)
         setFarmPhoto(data.data.farmPhoto ? getAssetUrl(data.data.farmPhoto) : "")
-        setNotice("Farm profile saved.")
+        savedSettings.current = {
+          ...savedSettings.current,
+          farm: { ...settings.farm },
+        }
       }
+      setNotice("")
+      setNoticeKind("success")
+      toast.success(activeTab === "general"
+        ? "Preferences saved."
+        : activeTab === "account"
+          ? "Account profile saved."
+          : "Farm profile saved.")
     } catch (error) {
       console.error("Could not save settings:", error)
       setNotice(error.response?.data?.message || error.message || "Settings could not be saved.")
+      setNoticeKind("error")
       if (activeTab === "account") {
         if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
         profilePhotoUrl.current = ""
@@ -284,7 +308,15 @@ function SettingPage() {
     }
   }
 
-  function cancelSettings() {
+  function hasUnsavedChanges() {
+    return JSON.stringify(settings) !== JSON.stringify(savedSettings.current)
+      || JSON.stringify(preferences) !== JSON.stringify(savedPreferences)
+      || Boolean(profilePhotoFile)
+      || Boolean(farmPhotoFile)
+  }
+
+  function discardSettings() {
+    setDiscardOpen(false)
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
     profilePhotoUrl.current = ""
     if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
@@ -293,6 +325,16 @@ function SettingPage() {
     setFarmPhotoFile(null)
     setEditingAccount(false)
     setNotice("")
+    setNoticeKind("")
+    resetPreferences()
+    void loadSettings()
+  }
+
+  function cancelSettings() {
+    if (hasUnsavedChanges()) {
+      setDiscardOpen(true)
+      return
+    }
     void loadSettings()
   }
 
@@ -309,6 +351,7 @@ function SettingPage() {
     if (!file) return
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
       setNotice("Choose a JPEG, PNG or WebP farm photo up to 3MB.")
+      setNoticeKind("error")
       return
     }
     if (farmPhotoUrl.current) URL.revokeObjectURL(farmPhotoUrl.current)
@@ -316,6 +359,7 @@ function SettingPage() {
     setFarmPhoto(farmPhotoUrl.current)
     setFarmPhotoFile(file)
     setNotice("")
+    setNoticeKind("")
   }
 
   function updateProfilePhoto(event) {
@@ -324,6 +368,7 @@ function SettingPage() {
     if (!file) return
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
       setNotice("Choose a JPEG, PNG or WebP profile photo up to 2MB.")
+      setNoticeKind("error")
       return
     }
     if (profilePhotoUrl.current) URL.revokeObjectURL(profilePhotoUrl.current)
@@ -331,6 +376,7 @@ function SettingPage() {
     setProfilePhoto(profilePhotoUrl.current)
     setProfilePhotoFile(file)
     setNotice("")
+    setNoticeKind("")
   }
 
   async function changePassword(event) {
@@ -356,7 +402,8 @@ function SettingPage() {
       if (!data?.accessToken) throw new Error("The password update response was incomplete.")
       setAccessToken(data.accessToken)
       setPasswords({ current: "", next: "", confirm: "" })
-      setPasswordNotice("Password changed successfully.")
+      setPasswordNotice("")
+      toast.success("Password changed successfully.")
     } catch (error) {
       console.error("Could not change password:", error)
       setPasswordError(error.response?.data?.message || error.message || "Could not change your password.")
@@ -395,7 +442,13 @@ function SettingPage() {
         {loadError && (
           <div className="settings-form-error" role="alert">
             {loadError}
-            <button type="button" className="settings-outline-button" onClick={() => void loadSettings()}>Try again</button>
+            <button type="button" className="settings-outline-button" onClick={() => { void loadSettings(); void reloadPreferences() }}>Try again</button>
+          </div>
+        )}
+        {preferencesError && !loadError && (
+          <div className="settings-form-error" role="alert">
+            {preferencesError}
+            <button type="button" className="settings-outline-button" onClick={() => void reloadPreferences()}>Try again</button>
           </div>
         )}
         <nav className="settings-tabs" aria-label="Settings sections" role="tablist">
@@ -408,7 +461,7 @@ function SettingPage() {
               aria-selected={activeTab === tab.id}
               className={`settings-tab${activeTab === tab.id ? " is-active" : ""}`}
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setNotice("") }}
+              onClick={() => { setActiveTab(tab.id); setNotice(""); setNoticeKind("") }}
             >
               {tab.label}
             </button>
@@ -421,9 +474,9 @@ function SettingPage() {
             className="settings-panel"
             role="tabpanel"
             aria-labelledby={`settings-tab-${activeTab}`}
-            aria-busy={isLoading}
+            aria-busy={isLoading || preferencesLoading}
           >
-            {isLoading ? <p className="settings-upload-note" role="status">Loading your saved settings…</p> : loadError ? null : (
+            {isLoading || preferencesLoading ? <p className="settings-upload-note" role="status">Loading your saved settings…</p> : loadError || preferencesError ? null : (
               <>
             {activeTab === "general" && (
               <SettingsCard
@@ -436,18 +489,18 @@ function SettingPage() {
                   <div className="settings-theme-options">
                     <button
                       type="button"
-                      className={`settings-theme-choice light${settings.theme === "light" ? " is-selected" : ""}`}
-                      aria-pressed={settings.theme === "light"}
-                      onClick={() => { setSettings((current) => ({ ...current, theme: "light" })); setNotice("") }}
+                      className={`settings-theme-choice light${preferences.theme === "light" ? " is-selected" : ""}`}
+                      aria-pressed={preferences.theme === "light"}
+                      onClick={() => { setTheme("light"); setNotice(""); setNoticeKind("") }}
                     >
                       <span className="settings-theme-choice-title"><Sun size={16} /> AgriLink Light <i /></span>
                       <span>Warm cream surfaces, rich gold accents and clean foliage green highlights.</span>
                     </button>
                     <button
                       type="button"
-                      className={`settings-theme-choice dark${settings.theme === "dark" ? " is-selected" : ""}`}
-                      aria-pressed={settings.theme === "dark"}
-                      onClick={() => { setSettings((current) => ({ ...current, theme: "dark" })); setNotice("") }}
+                      className={`settings-theme-choice dark${preferences.theme === "dark" ? " is-selected" : ""}`}
+                      aria-pressed={preferences.theme === "dark"}
+                      onClick={() => { setTheme("dark"); setNotice(""); setNoticeKind("") }}
                     >
                       <span className="settings-theme-choice-title"><Moon size={16} /> Dark Theme <i /></span>
                       <span>High-contrast slate black backgrounds engineered for night monitoring.</span>
@@ -467,9 +520,9 @@ function SettingPage() {
                       <button
                         type="button"
                         key={size.value}
-                        className={settings.fontSize === size.value ? "is-selected" : ""}
-                        aria-pressed={settings.fontSize === size.value}
-                        onClick={() => { setSettings((current) => ({ ...current, fontSize: size.value })); setNotice("") }}
+                        className={preferences.fontSize === size.value ? "is-selected" : ""}
+                        aria-pressed={preferences.fontSize === size.value}
+                        onClick={() => { setFontSize(size.value); setNotice(""); setNoticeKind("") }}
                       >
                         {size.label}
                       </button>
@@ -699,9 +752,9 @@ function SettingPage() {
           </div>
 
           <footer className="settings-actions">
-            <span className={`settings-save-notice${notice ? " is-visible" : ""}`} role="status">{notice}</span>
-            <button type="button" className="settings-cancel-button" disabled={isLoading || saving} onClick={cancelSettings}>Cancel</button>
-            <button type="button" className="settings-save-button" disabled={isLoading || saving || Boolean(loadError)} onClick={saveSettings}>
+            <span className={`settings-save-notice${notice ? ` is-visible is-${noticeKind}` : ""}`} role="status" aria-live="polite">{notice}</span>
+            <button type="button" className="settings-cancel-button" disabled={isLoading || preferencesLoading || saving} onClick={cancelSettings}>Cancel</button>
+            <button type="button" className="settings-save-button" disabled={isLoading || preferencesLoading || saving || Boolean(loadError) || Boolean(preferencesError)} onClick={saveSettings}>
               {saving ? "Saving…" : "Save Changes"}
             </button>
           </footer>
@@ -714,6 +767,30 @@ function SettingPage() {
           loading={loggingOut}
           error={logoutError}
         />
+      )}
+      {discardOpen && (
+        <div className="settings-logout-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setDiscardOpen(false)
+        }}>
+          <section
+            className="settings-logout-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-settings-title"
+            aria-describedby="discard-settings-description"
+          >
+            <h2 id="discard-settings-title">Discard unsaved changes?</h2>
+            <p id="discard-settings-description">Your changes to these settings will be lost.</p>
+            <div className="settings-logout-modal-actions">
+              <button type="button" className="settings-cancel-button" onClick={() => setDiscardOpen(false)} autoFocus>
+                Keep editing
+              </button>
+              <button type="button" className="settings-logout-button" onClick={discardSettings}>
+                Discard changes
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </main>
   )

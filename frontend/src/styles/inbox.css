@@ -1399,16 +1399,16 @@ html[data-appearance="dark"] .inbox-page {
 
 html[data-appearance="dark"] .inbox-list-pane,
 html[data-appearance="dark"] .inbox-chat-pane {
-  border-color: #39483c;
-  background: #28362d;
+  border-color: #405b43;
+  background: #263c2d;
 }
 
 html[data-appearance="dark"] .inbox-request-buyer,
 html[data-appearance="dark"] .inbox-request-order,
 html[data-appearance="dark"] .inbox-buyer-modal,
 html[data-appearance="dark"] .inbox-status-confirm-modal {
-  border-color: #39483c;
-  background: #28362d;
+  border-color: #405b43;
+  background: #263c2d;
 }
 
 html[data-appearance="dark"] .inbox-request-buyer-copy h2,
@@ -1427,7 +1427,7 @@ html[data-appearance="dark"] .inbox-status-confirm-modal > p strong {
 
 html[data-appearance="dark"] .inbox-request-order > header,
 html[data-appearance="dark"] .inbox-request-total {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 html[data-appearance="dark"] .inbox-request-note,
@@ -1453,19 +1453,19 @@ html[data-appearance="dark"] .inbox-system-message {
 }
 
 html[data-appearance="dark"] .inbox-buyer-modal > header {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 html[data-appearance="dark"] .inbox-buyer-modal > header button,
 html[data-appearance="dark"] .inbox-view-buyer-button,
 html[data-appearance="dark"] .inbox-order-details-button {
-  border-color: #435347;
+  border-color: #49694b;
   background: #243128;
   color: #d7e0d4;
 }
 
 html[data-appearance="dark"] .inbox-modal-order-details {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 html[data-appearance="dark"] .inbox-modal-order-details dt,
@@ -1474,11 +1474,11 @@ html[data-appearance="dark"] .inbox-status-confirm-modal > p {
 }
 
 html[data-appearance="dark"] .inbox-modal-order-details .inbox-modal-order-total {
-  border-color: #39483c;
+  border-color: #405b43;
 }
 
 html[data-appearance="dark"] .inbox-status-confirm-modal > footer button:not(.inbox-status-confirm-button) {
-  border-color: #435347;
+  border-color: #49694b;
   background: #243128;
   color: #d7e0d4;
 }
@@ -1490,8 +1490,8 @@ html[data-appearance="dark"] .inbox-request-actions,
 html[data-appearance="dark"] .inbox-composer,
 html[data-appearance="dark"] .inbox-closed-notice,
 html[data-appearance="dark"] .inbox-conversation-card {
-  border-color: #39483c;
-  background-color: #28362d;
+  border-color: #405b43;
+  background-color: #263c2d;
 }
 
 html[data-appearance="dark"] .inbox-conversation-card:hover,
@@ -1502,8 +1502,8 @@ html[data-appearance="dark"] .inbox-conversation-card.is-pending:not(.is-selecte
 
 html[data-appearance="dark"] .inbox-conversation-menu,
 html[data-appearance="dark"] .inbox-order-status-control {
-  border-color: #435347;
-  background: #243128;
+  border-color: #49694b;
+  background: #24372c;
   color: #d7e0d4;
 }
 
@@ -1513,8 +1513,8 @@ html[data-appearance="dark"] .inbox-order-status-control > label {
 }
 
 html[data-appearance="dark"] .inbox-order-status-control select {
-  border-color: #435347;
-  background: #28362d;
+  border-color: #49694b;
+  background: #263c2d;
   color: #d7e0d4;
 }
 
