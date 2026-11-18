@@ -7,7 +7,7 @@ server: {
   port: 5174,
   proxy: {
     "/ss1": {
-      target: "https://army-trade-luxury.ngrok-free.dev",
+      target: "https://reabsorb-gray-bluish.ngrok-free.dev/",
       changeOrigin: true,
       secure: true,
       rewrite: (path) => path.replace(/^\/ss1/, ""),

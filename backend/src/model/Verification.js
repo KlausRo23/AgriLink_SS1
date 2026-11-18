@@ -68,7 +68,7 @@ reviewedBy: {
   name: String,
   role: {
     type: String,
-    enum: ["admin", "super_admin"]
+    enum: ["admin", "superadmin", "super_admin"]
   }
 },
 remarks: {

@@ -36,3 +36,70 @@ export async function submitVerification(req, res) {
         return handleError(res, error)
     }
 }
+
+export async function getAllVerification(req, res) {
+    try {
+        const result = await verificationService.getAllVerification(req.query)
+        return res.status(200).json({ success: true, message: "Verifications fetched", data: result })
+    } catch (error) {
+        return handleError(res, error)
+    }
+}
+
+export async function getFarmerVerification(req, res) {
+    try {
+        const result = await verificationService.getVerificationById(req.params.id)
+        return res.status(200).json({ success: true, message: "Verification fetched", data: result })
+    } catch (error) {
+        return handleError(res, error)
+    }
+}
+
+export async function getVerificationFile(req, res) {
+    try {
+        const filePath = await verificationService.getVerificationFile(
+            req.params.id,
+            req.params.fileType
+        )
+        return res.sendFile(filePath, {
+            headers: { "Content-Disposition": "inline" }
+        }, (error) => {
+            if (!error || res.headersSent) return
+            if (error.code === "ENOENT") {
+                return res.status(404).json({ success: false, message: "Verification file not found", data: null })
+            }
+            console.error("Could not send verification file:", error)
+            return res.status(500).json({ success: false, message: "Internal server error", data: null })
+        })
+    } catch (error) {
+        return handleError(res, error)
+    }
+}
+
+export async function approveVerification(req, res) {
+    try {
+        const result = await verificationService.reviewVerification(
+            req.params.id,
+            "approved",
+            req.body?.remarks,
+            req.user
+        )
+        return res.status(200).json({ success: true, message: "Verification approved", data: result })
+    } catch (error) {
+        return handleError(res, error)
+    }
+}
+
+export async function rejectVerification(req, res) {
+    try {
+        const result = await verificationService.reviewVerification(
+            req.params.id,
+            "rejected",
+            req.body?.remarks,
+            req.user
+        )
+        return res.status(200).json({ success: true, message: "Verification rejected", data: result })
+    } catch (error) {
+        return handleError(res, error)
+    }
+}
