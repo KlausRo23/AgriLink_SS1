@@ -21,6 +21,8 @@ import scheduleRoute from "./route/scheduleRoute.js"
 import settingsRoute from "./route/settingsRoute.js"
 import dashboardRoute from "./route/dashboardRoute.js"
 import inboxRoute from "./route/inboxRoute.js"
+import messageRoute from "./route/messageRoute.js"
+import orderRoute from "./route/orderRoute.js"
 import historyRoute from "./route/historyRoute.js"
 import { globalLimit } from "./middleware/rateLimit.js"
 
@@ -90,6 +92,8 @@ app.use("/api/schedule", scheduleRoute)
 app.use("/api/settings", settingsRoute)
 app.use("/api/dashboard", dashboardRoute)
 app.use("/api/inbox", inboxRoute)
+app.use("/api/messages", messageRoute)
+app.use("/api/orders", orderRoute)
 app.use("/api/history", historyRoute)
 app.use("/api/", listingRoute)
 

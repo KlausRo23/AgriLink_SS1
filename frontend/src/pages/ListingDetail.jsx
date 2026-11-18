@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, MapPin, Minus, Plus
 import { Link, useNavigate, useParams } from "react-router-dom"
 import toast from "react-hot-toast"
 import ListingCareHistory from "../component/listing/ListingCareHistory"
-import { createInboxOrderRequest, getMarketplaceListing, getMyListing } from "../api/api"
+import { createOrder, getMarketplaceListing, getMyListing } from "../api/api"
 import { normalizeListing } from "../data/listings"
 import "../styles/listings.css"
 
@@ -114,9 +114,9 @@ function ListingDetail() {
     setOrderSubmitting(true)
     setNotice("")
     try {
-      const { data } = await createInboxOrderRequest({ listingId: listing.id, quantity })
+      const { data } = await createOrder({ listingId: listing.id, quantity })
       toast.success("Order request sent.")
-      navigate("/inbox", { state: { threadId: data.data.id } })
+      navigate("/inbox", { state: { threadId: data.conversation.id } })
     } catch (error) {
       setNotice(error.response?.data?.message || "Could not submit this order request.")
     } finally {

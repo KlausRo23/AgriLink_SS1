@@ -7,6 +7,7 @@ import { useLocation } from "react-router-dom"
 import toast from "react-hot-toast"
 import {
   getInboxConversations,
+  cancelOrder,
   respondToInboxRequest,
   sendInboxMessage,
   setInboxArchived,
@@ -80,6 +81,9 @@ function InboxPage() {
   const activeOrdersCount = threads.filter((thread) => matchesInboxFilter(thread, "active-orders")).length
   const deliveredCount = threads.filter((thread) => matchesInboxFilter(thread, "delivered")).length
   const archivedCount = threads.filter((thread) => thread.archived).length
+  const buyerCancelledOrder = selectedThread?.messages.some(
+    (message) => message.text === "The buyer cancelled this order."
+  ) ?? false
 
   const loadInbox = useCallback(async () => {
     setLoading(true)
@@ -225,6 +229,21 @@ function InboxPage() {
     }
   }
 
+  async function cancelSelectedOrder() {
+    if (!selectedThread?.orderId || !window.confirm("Cancel this order?")) return
+    setSaving(true)
+    setNotice("")
+    try {
+      await cancelOrder(selectedThread.orderId)
+      await loadInbox()
+      toast.success("Order cancelled.")
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not cancel this order.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function selectThread(threadId) {
     setSelectedId(threadId)
     setMobileDetailOpen(true)
@@ -304,11 +323,11 @@ function InboxPage() {
                   </button>
                   <span className="inbox-avatar" aria-hidden="true">{getInitials(selectedThread.isFarmer ? selectedThread.buyer?.fullName : selectedThread.customerName)}</span>
                   <div className="inbox-chat-identity">
-                    <strong>{selectedThread.status === "active" ? selectedThread.customerName : "Order request"}</strong>
-                    <span>{selectedThread.status === "active" ? "Conversation open" : selectedThread.status === "pending" ? "Review buyer and order details" : "Order request declined"}</span>
+                    <strong>{selectedThread.status === "active" ? selectedThread.customerName : buyerCancelledOrder ? "Order cancelled" : "Order request"}</strong>
+                    <span>{selectedThread.status === "active" ? "Conversation open" : selectedThread.status === "pending" ? "Review buyer and order details" : buyerCancelledOrder ? "Cancelled by buyer" : "Order request declined"}</span>
                   </div>
                   <span className={`inbox-status-pill is-${selectedThread.archived ? "archived" : selectedThread.status}`}>
-                    {selectedThread.archived ? "Archived" : selectedThread.status === "active" ? "Active chat" : selectedThread.status === "pending" ? "Needs response" : "Declined"}
+                    {selectedThread.archived ? "Archived" : selectedThread.status === "active" ? "Active chat" : selectedThread.status === "pending" ? "Needs response" : buyerCancelledOrder ? "Cancelled" : "Declined"}
                   </span>
                   {selectedThread.status === "active" && selectedThread.isFarmer && (
                     <button
@@ -344,7 +363,7 @@ function InboxPage() {
                       <header>
                         <div className="inbox-request-order-icon"><PackageCheck size={18} /></div>
                         <div><span>Requested item</span><h3>{selectedThread.listingName || "Order item"}</h3></div>
-                        <span className="inbox-request-order-status">{selectedThread.status === "pending" ? "Awaiting response" : "Declined"}</span>
+                        <span className="inbox-request-order-status">{selectedThread.status === "pending" ? "Awaiting response" : buyerCancelledOrder ? "Cancelled by buyer" : "Declined"}</span>
                       </header>
                       <div className="inbox-request-order-grid">
                         <div><span>Quantity</span><strong>{selectedThread.quantity} {selectedThread.unit || "units"}</strong></div>
@@ -366,10 +385,17 @@ function InboxPage() {
                         </div>
                       </div>
                     ) : selectedThread.status === "pending" ? (
-                      <div className="inbox-closed-notice">Your order request is awaiting a response from the farmer.</div>
+                      <div className="inbox-closed-notice">
+                        Your order request is awaiting a response from the farmer.
+                        {!selectedThread.isFarmer && selectedThread.orderId && (
+                          <button type="button" onClick={cancelSelectedOrder} disabled={saving}>Cancel order</button>
+                        )}
+                      </div>
                     ) : (
                       <div className="inbox-closed-notice">
-                        {selectedThread.archived && selectedThread.status === "pending"
+                        {buyerCancelledOrder
+                          ? "You cancelled this order. The farmer will not fulfill it."
+                          : selectedThread.archived && selectedThread.status === "pending"
                           ? "This request is archived. Restore it from the conversation menu to review it."
                           : "This order request was rejected. No conversation was started."}
                       </div>
@@ -392,7 +418,12 @@ function InboxPage() {
                       {selectedThread.listingName && selectedThread.quantity > 0 && !selectedThread.isFarmer && (
                         <div className="inbox-order-status-control">
                           <label>Order status</label>
-                          <div><span className={`inbox-order-status-badge is-${getEditableOrderStatus(selectedThread.orderStatus)}`}>{getOrderStatusLabel(selectedThread.orderStatus)}</span></div>
+                          <div>
+                            <span className={`inbox-order-status-badge is-${getEditableOrderStatus(selectedThread.orderStatus)}`}>{getOrderStatusLabel(selectedThread.orderStatus)}</span>
+                            {selectedThread.orderId && ["confirmed", "preparing"].includes(selectedThread.orderStatus) && (
+                              <button type="button" onClick={cancelSelectedOrder} disabled={saving}>Cancel order</button>
+                            )}
+                          </div>
                         </div>
                       )}
                       {selectedThread.listingName && selectedThread.quantity > 0 && selectedThread.isFarmer && (

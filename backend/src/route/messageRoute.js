@@ -1,26 +1,20 @@
 import express from "express"
-import { verifyAccessToken } from "../middleware/auth"
+import { verifyAccessToken } from "../middleware/auth.js"
+import authorize from "../middleware/verifyRoles.js"
+import { ROLES } from "../constant/roles.js"
+import {
+    createMessage,
+    deleteMessage,
+    editMessage,
+    getMessages
+} from "../controller/messageController.js"
 
 const router = express.Router()
+router.use(verifyAccessToken, authorize(ROLES.FARMER, ROLES.BUYER, ROLES.USER))
 
-router.get("/",
-    verifyAccessToken,
-    getMessages
-)
+router.get("/", getMessages)
+router.post("/", createMessage)
+router.patch("/:id", editMessage)
+router.delete("/:id", deleteMessage)
 
-router.post("/create-message",
-    verifyAccessToken,
-    createMessage
-)
-
-router.put("/edit-message/:id",
-    verifyAccessToken,
-    editMessage
-)
-
-router.delete("/delete-message",
-    verifyAccessToken,
-    deleteMessage
-)
-
-export default Router
+export default router

@@ -1,4 +1,5 @@
 import * as inboxService from "../service/inboxService.js"
+import * as messageService from "../service/messageService.js"
 
 function handleError(res, error) {
     if (error.statusCode) {
@@ -53,7 +54,10 @@ export async function updateOrderStatus(req, res) {
 
 export async function sendMessage(req, res) {
     try {
-        const conversation = await inboxService.addMessage(req.params.id, req.body, req.user)
+        const conversation = await messageService.createMessage({
+            conversationId: req.params.id,
+            text: req.body?.text
+        }, req.user)
         return res.status(201).json({ success: true, message: "Message sent", data: conversation })
     } catch (error) {
         return handleError(res, error)

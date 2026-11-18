@@ -1082,6 +1082,26 @@
   margin-left: auto;
 }
 
+.inbox-order-status-control > div > button,
+.inbox-closed-notice button {
+  min-height: 29px;
+  padding: 0 9px;
+  border: 1px solid #e6d3ce;
+  border-radius: 6px;
+  background: #fff;
+  color: #9e5248;
+  font: inherit;
+  font-size: 0.63rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inbox-order-status-control > div > button:disabled,
+.inbox-closed-notice button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .inbox-order-status-control select {
   min-height: 29px;
   padding: 0 24px 0 8px;
@@ -1353,6 +1373,11 @@
   text-align: center;
 }
 
+.inbox-closed-notice button {
+  display: block;
+  margin: 10px auto 0;
+}
+
 .inbox-select-prompt {
   display: grid;
   flex: 1;
@@ -1516,6 +1541,13 @@ html[data-appearance="dark"] .inbox-order-status-control select {
   border-color: #49694b;
   background: #263c2d;
   color: #d7e0d4;
+}
+
+html[data-appearance="dark"] .inbox-order-status-control > div > button,
+html[data-appearance="dark"] .inbox-closed-notice button {
+  border-color: #76534e;
+  background: #352c2c;
+  color: #efb4a9;
 }
 
 html[data-appearance="dark"] .inbox-list-heading h2,

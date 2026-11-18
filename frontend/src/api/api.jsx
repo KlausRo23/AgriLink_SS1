@@ -218,6 +218,22 @@ export function createInboxOrderRequest(request) {
   return api.post("/inbox/order-requests", request)
 }
 
+export function createOrder(request) {
+  return api.post("/orders/checkout", request)
+}
+
+export function getOrders(params = {}) {
+  return api.get("/orders/all-orders", { params })
+}
+
+export function getOrder(id) {
+  return api.get(`/orders/${id}`)
+}
+
+export function cancelOrder(id) {
+  return api.put(`/orders/${id}/cancel`)
+}
+
 export function respondToInboxRequest(id, action) {
   return api.patch(`/inbox/${id}/request`, { action })
 }

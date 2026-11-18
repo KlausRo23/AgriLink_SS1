@@ -1,14 +1,10 @@
 import mongoose from "mongoose"
-
-const inboxMessageSchema = new mongoose.Schema({
-    senderId: { type: String, required: true },
-    text: { type: String, required: true, trim: true, maxLength: 2000 },
-    type: { type: String, enum: ["message", "system"], default: "message" }
-}, { timestamps: true })
+import { messageSchema } from "./Message.js"
 
 const inboxConversationSchema = new mongoose.Schema({
     farmerId: { type: String, required: true, index: true },
     buyerId: { type: String, required: true, index: true },
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", default: null },
     listingId: { type: mongoose.Schema.Types.ObjectId, ref: "Listing", required: true },
     listingName: { type: String, required: true },
     listingPrice: { type: Number, required: true, min: 0 },
@@ -32,7 +28,7 @@ const inboxConversationSchema = new mongoose.Schema({
     },
     completedAt: { type: Date, default: null },
     archivedFor: { type: [String], default: [] },
-    messages: { type: [inboxMessageSchema], default: [] }
+    messages: { type: [messageSchema], default: [] }
 }, { timestamps: true })
 
 inboxConversationSchema.index({ farmerId: 1, updatedAt: -1 })

@@ -5,6 +5,7 @@ import Inventory from "../model/Inventory.js"
 import Farmer from "../model/Farmer.js"
 import Farm from "../model/Farm.js"
 import User from "../model/User.js"
+import Order from "../model/Order.js"
 import AppError from "../utils/AppError.js"
 
 const ORDER_STATUSES = ["confirmed", "preparing", "ready", "delivered", "cancelled"]
@@ -23,7 +24,7 @@ function assertConversationId(id) {
     if (!mongoose.isValidObjectId(id)) throw new AppError("Invalid conversation id", 400)
 }
 
-async function findParticipantConversation(id, requester) {
+export async function findParticipantConversation(id, requester) {
     assertConversationId(id)
     const conversation = await InboxConversation.findOne({
         _id: id,
@@ -37,7 +38,7 @@ function displayTime(date) {
     return new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit" }).format(date)
 }
 
-function presentConversation(conversation, requester) {
+export function presentConversation(conversation, requester) {
     const ownAsFarmer = conversation.farmerId === requester.id
     const archived = conversation.archivedFor.includes(requester.id)
     const messages = conversation.messages.map((message) => ({
@@ -71,6 +72,7 @@ function presentConversation(conversation, requester) {
         orderStatus: conversation.orderStatus,
         completedAt: conversation.completedAt,
         archived,
+        orderId: conversation.orderId ? String(conversation.orderId) : null,
         deliveryMethod: conversation.deliveryMethod,
         requestedDeliveryDate: conversation.requestedDeliveryDate,
         requestNote: conversation.requestNote,
@@ -108,13 +110,15 @@ export async function createOrderRequest(body = {}, requester) {
         throw new AppError("Requested quantity exceeds available stock", 400)
     }
 
+    const buyerLookup = mongoose.isValidObjectId(requester.id)
+        ? User.findById(requester.id).select("name").lean()
+        : Promise.resolve(null)
     const [buyer, farmer] = await Promise.all([
-        User.findById(requester.id).select("name").lean(),
+        buyerLookup,
         Farmer.findOne({ ssoUserId: listing.owner }).select("_id firstName lastName suffix").lean()
     ])
-    if (!buyer) throw new AppError("Buyer account not found", 404)
     const farm = farmer ? await Farm.findOne({ owner: farmer._id }).select("farmName location").lean() : null
-    const buyerName = buyer.name.trim() || "Buyer"
+    const buyerName = buyer?.name?.trim() || "Buyer"
     const conversation = await InboxConversation.create({
         farmerId: listing.owner,
         buyerId: requester.id,
@@ -162,6 +166,10 @@ export async function updateRequest(id, action, requester) {
         conversation.archivedFor.addToSet(requester.id)
     }
     await conversation.save()
+    await Order.updateOne(
+        { conversation: conversation._id },
+        { status: conversation.orderStatus }
+    )
     return presentConversation(conversation, requester)
 }
 
@@ -174,6 +182,10 @@ export async function updateOrderStatus(id, orderStatus, requester) {
     conversation.orderStatus = orderStatus
     conversation.completedAt = orderStatus === "delivered" ? new Date() : null
     await conversation.save()
+    await Order.updateOne(
+        { conversation: conversation._id },
+        { status: orderStatus }
+    )
     return presentConversation(conversation, requester)
 }
 
